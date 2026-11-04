@@ -1,0 +1,47 @@
+# 路线图
+
+## 第 0 阶段 — 骨架与文档（当前）
+
+- [x] 仓库骨架：`src/`、`test/`、`docs/`、`media/`
+- [x] `README.md`、`CONTEXT.md`、`AGENTS.md`、`.gitignore`
+- [x] 架构文档（DDD 分层、规划解决方案布局、ADR 决策记录）
+- [x] 领域文档（领域模型、多语言数据设计、音频资产规范）
+- [x] 功能规格（总目录、题型、背词模块、点词弹层、UI 主题与响应式）
+- [x] 编码规范
+- [ ] 所有者评审与确认
+
+## 第 1 阶段 — 解决方案骨架与领域核心
+
+- 按 `docs/architecture/solution-skeleton.md` 创建 `.sln` 与项目布局
+- 领域层：按 `docs/domain/model.md` 实现聚合与值对象（不含存储、不含 UI）
+- 领域不变量单元测试（变格检索、语义键唯一性、音频路径生成）
+- CI：`dotnet build` 零警告 + `dotnet test`
+
+## 第 2 阶段 — 内容与本地化数据层
+
+- 按 `docs/domain/localization-data-design.md` 建立数据库 Schema
+- 内容填充管线：中文学德语课程数据（单词、词元、全部形态、句子、对话）
+- 离线音频生成管线，按 `docs/domain/audio-asset-spec.md` 执行；Azure TTS 免费额度；de-DE 配置 3 个音色角色
+
+## 第 3 阶段 — Blazor WASM 外壳
+
+- 独立部署 WASM 应用、模块加载、路由
+- 亮/暗主题（`docs/features/ui-theming-responsive.md`）、响应式布局
+- 本地化管道（界面文案全部来自数据层）
+
+## 第 4 阶段 — 学习功能
+
+- 课程引擎 + 题型注册表；落地 `docs/features/exercise-types.md` 中的五种题型（含对话填空音频规则）
+- 点词弹层（`docs/features/word-inspector-popover.md`）
+- 带 SRS 的背单词模块（`docs/features/vocabulary-trainer.md`）
+- 多邻国式学习闭环（`docs/features/feature-catalog.md`）
+
+## 第 5 阶段 — 考试、加固、第二门语言
+
+- 模拟考试模块（歌德/telc 风格）
+- 性能与体验打磨、移动端验收
+- 验证"N 语言"承诺：添加第二门语言（仅数据 + 音色角色，零代码改动）
+
+## 里程碑验收
+
+每个阶段以 `AGENTS.md` § 3 的质量门禁结束，外加该阶段功能文档中列出的专项检查。
