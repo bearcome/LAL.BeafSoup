@@ -4,7 +4,7 @@
 
 ## 行为
 
-1. 渲染句子时，每个词元通过 `SentenceWord` 链接解析到 `InflectionForm` → `Lemma`（数据基础见 `model.md`）。
+1. 渲染句子时，按 `SentenceTokenization` 的本地化文本跨度显示原句；词元标注链接到已消歧的 `InflectionForm` → `Lemma`。多词短语使用覆盖在词元序列上的 `SentenceSpanLink`（数据基础见 `model.md`）。
 2. 点击/悬停触发（可配置：默认点击固定，悬停仅预览），打开悬浮弹层，锚定于该词元：`position: fixed` 式绝对定位覆盖层，不引发回流——页面滚动/缩放时弹层保持锚定（靠近视口边缘时自动翻转/钳制）。
 3. 弹层内容自上而下：
    - 词元首词 + 词性 + 冠词 + 发音按钮（单词音频）。

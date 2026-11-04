@@ -1,31 +1,40 @@
 # 解决方案骨架（规划目标，第 1 阶段产出）
 
-> 目前尚无代码——这是第 1 阶段脚手架必须产出的目标布局。项目名用英文（遵循 AGENTS.md）。
-
+> 本文使用下方唯一的模块化项目树。
+路径中的 `{Module}`、`{Layer}` 和逗号分隔的层名称均为模板缩写，不是字面目录；例如 `Modules/Vocabulary/BeafSoup.Vocabulary.Domain/`。每个模块各自创建独立项目。
 ```
 LAL.BeafSoup.sln
 ├── src/
-│   ├── BeafSoup.SharedKernel/            # LanguageCode、VoiceRole、ContentKey、参数守卫
-│   ├── BeafSoup.Domain/             # 模拟考试聚合、SRS 调度器、进度、连胜、AudioAsset、路径约定、音色角色、题型注册表、Exercise 基类、判分、Course、SkillUnit、Lesson、Sentence、Lemma（词元）、InflectionForm（形态）、词-句互链、SemanticKey、LocalizedText 聚合
-│   ├── BeafSoup.Domain.Shared/           # 跨模块领域契约/事件
-│   ├── BeafSoup.Application.Contracts/   # DTO + 服务接口（面向 UI）
-│   ├── BeafSoup.Application/             # 用例、题型引擎、本地化查询
-│   ├── BeafSoup.EntityFrameworkCore/     # 仓储实现、DbContext、迁移
-│   ├── BeafSoup.Audio.Generation/        # Azure TTS 离线批量生成工具（控制台）
-│   ├── BeafSoup.Blazor.Host/              # Blazor WASM 独立部署宿主 
-│   ├── BeafSoup.Blazor.Shared/           # 组件、Page等
-│   └── BeafSoup.Blazor.Theming/          # 亮/暗主题令牌、响应式原语
+│   ├── BeafSoup.SharedKernel/          # LanguageCode、VoiceRole、SemanticKey 等稳定共享类型
+│   ├── Modules/
+│   │   ├── Localization/{Localization}.{Domain.Shared,Domain,Application.Contracts,Application,EntityFrameworkCore,HttpApi}/
+│   │   ├── Vocabulary/{Vocabulary}.{Domain.Shared,Domain,Application.Contracts,Application,EntityFrameworkCore,HttpApi}/
+│   │   ├── Content/{Content}.{Domain.Shared,Domain,Application.Contracts,Application,EntityFrameworkCore,HttpApi}/
+│   │   ├── Exercises/{Exercises}.{Domain.Shared,Domain,Application.Contracts,Application,EntityFrameworkCore,HttpApi}/
+│   │   ├── Audio/{Audio}.{Domain.Shared,Domain,Application.Contracts,Application,EntityFrameworkCore,HttpApi}/
+│   │   ├── Learning/{Learning}.{Domain.Shared,Domain,Application.Contracts,Application,EntityFrameworkCore,HttpApi}/
+│   │   ├── Exam/{Exam}.{Domain.Shared,Domain,Application.Contracts,Application,EntityFrameworkCore,HttpApi}/
+│   │   ├── Identity/{Identity}.{Domain.Shared,Domain,Application.Contracts,Application,EntityFrameworkCore,HttpApi}/
+│   │   └── UsageAnalytics/{UsageAnalytics}.{Domain.Shared,Domain,Application.Contracts,Application,EntityFrameworkCore,HttpApi}/
+│   ├── BeafSoup.HttpApi.Host/          # 组合服务端模块，不承载业务规则
+│   ├── BeafSoup.Blazor.Client/         # 独立部署的静态 WASM 客户端
+│   ├── BeafSoup.Blazor.Shared/         # 页面与组件，只依赖 Contracts/Domain.Shared
+│   ├── BeafSoup.Blazor.Theming/        # 客户端主题与响应式支持库
+│   └── BeafSoup.Audio.Generation/      # Azure TTS 离线生成工具
 ├── test/
-│   ├── BeafSoup.Domain.Tests/            # xUnit，纯领域不变量
-│   ├── BeafSoup.Application.Tests/
-│   ├── BeafSoup.Exercises.Tests/
-│   └── BeafSoup.Audio.Tests/             # 路径约定与 SSML 内容规则
+│   ├── BeafSoup.Architecture.Tests/    # 模块依赖方向与程序集边界
+│   ├── Modules/{Module}.Domain.Tests/  # 纯领域不变量
+│   ├── Modules/{Module}.Application.Tests/
+│   ├── BeafSoup.Api.Tests/             # 授权、持久化与 API 集成测试
+│   └── BeafSoup.Browser.Tests/         # 核心端到端验收场景
 └── docs/（即本目录）
 ```
 
 ## 脚手架规则
 
 - 全项目启用 Nullable + 隐式 using；`<TreatWarningsAsErrors>true</TreatWarningsAsErrors>`。
-- 领域项目只允许引用 `SharedKernel` 与 `Domain.Shared`——第 1 阶段用架构测试强制约束。
-- `Blazor` 项目是唯一 WASM 入口；只引用 `Application.Contracts` 与 Theming，不直接引用基础设施。
+- 每个模块的 Domain 只允许引用 `SharedKernel` 与本模块 `Domain.Shared`；不得引用其他模块 Domain 或基础设施。由架构测试强制约束。
+- 模块间只通过对方 `Application.Contracts` 查询；状态变更通过稳定版本化领域事件，不通过跨模块对象引用。
+- `HttpApi.Host` 是服务端组合入口；`Blazor.Client` 是唯一 WASM 入口，不引用 Domain、Application 或基础设施。
+- 初始阶段只创建当前阶段所需模块项目，不提前生成未实现模块的空壳。
 - 注释用中文；标识符用英文。

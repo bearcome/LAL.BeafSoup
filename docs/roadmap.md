@@ -6,7 +6,7 @@
 - [x] `README.md`、`CONTEXT.md`、`AGENTS.md`、`.gitignore`
 - [x] 架构文档（DDD 分层、规划解决方案布局、ADR 决策记录）
 - [x] 领域文档（领域模型、多语言数据设计、音频资产规范）
-- [x] 功能规格（总目录、题型、背词模块、点词弹层、UI 主题与响应式）
+- [x] 功能规格（总目录、题型、背词模块、点词弹层、UI 主题与响应式、账号与统计、BDD 场景）
 - [x] 编码规范
 - [ ] 所有者评审与确认
 
@@ -14,7 +14,7 @@
 
 - 按 `docs/architecture/solution-skeleton.md` 创建 `.sln` 与项目布局
 - 领域层：按 `docs/domain/model.md` 实现聚合与值对象（不含存储、不含 UI）
-- 领域不变量单元测试（变格检索、语义键唯一性、音频路径生成）
+- 领域不变量单元测试（歧义词形检索、翻译修订导致的标注失效、Lemma 级 SRS 卡与形态掌握度、语义键唯一性、音频路径生成）
 - CI：`dotnet build` 零警告 + `dotnet test`
 
 ## 第 2 阶段 — 内容与本地化数据层
@@ -28,6 +28,7 @@
 - 独立部署 WASM 应用、模块加载、路由
 - 亮/暗主题（`docs/features/ui-theming-responsive.md`）、响应式布局
 - 本地化管道（界面文案全部来自数据层）
+- 接入独立 `HttpApi.Host`、账户注册/身份验证与使用统计；遵循 `docs/features/account-and-usage-statistics.md`。
 
 ## 第 4 阶段 — 学习功能
 
@@ -35,12 +36,13 @@
 - 点词弹层（`docs/features/word-inspector-popover.md`）
 - 带 SRS 的背单词模块（`docs/features/vocabulary-trainer.md`）
 - 多邻国式学习闭环（`docs/features/feature-catalog.md`）
+- 学习配置、学习活动、FSRS 卡片、形态掌握度及考试记录均通过 API 按账户隔离持久化。
 
 ## 第 5 阶段 — 考试、加固、第二门语言
 
 - 模拟考试模块（歌德/telc 风格）
 - 性能与体验打磨、移动端验收
-- 验证"N 语言"承诺：添加第二门语言（仅数据 + 音色角色，零代码改动）
+- 验证语言扩展承诺：以已有处理器支持的第二门语言完成纯数据/配置接入；未覆盖的语言处理能力必须先实现并通过专属测试，不能降级为错误但静默的通用规则。
 
 ## 里程碑验收
 

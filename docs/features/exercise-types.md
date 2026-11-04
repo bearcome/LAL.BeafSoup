@@ -8,9 +8,9 @@
 | 句子填空选择题 | `SentenceClozeMcq` | 句子带空；4 选 1 选出缺失词/短语（选项可悬停/点击查看原型与常用形态），确保只有一个合理答案，不能出现多个选项均正确，允许点击播放音频作为提示 |
 | 句子填空输入题 | `SentenceClozeInput` | 同上的空，自由输入；宽容判分（大小写/变音符号不敏感、冠词可配置容忍），按词元判分并高亮错误，允许点击播放音频作为提示 |
 | 场景对话听力选择题 | `DialogueListeningMcq` | 播放完整对话音频，回答理解性选择题，支持自动连续播放和留间隔跟读模式播放 |
-| 补全对话（对话族内特殊题型，规则见下） | `DialogueClozeMcq` | 对话行中带空；音频播放**补全后**的行；学习者选出/输入缺失词 |
+| 补全对话（对话族内特殊题型，规则见下） | `DialogueCloze` | 对话行中带空；版本化题目负载通过 `responseMode` 指定选择或输入；音频播放**补全后**的行 |
 
-另有：`MockExam`（计时整卷，A1–C1，见 `feature-catalog.md`）与独立背单词模块。
+题型注册表共五种：`WordDefinitionMcq`、`SentenceClozeMcq`、`SentenceClozeInput`、`DialogueListeningMcq`、`DialogueCloze`。补全对话的选择/输入模式由题目负载指定。`MockExam` 是 Exam 模块的计时整卷编排（A1–C1），组合已注册题型，不是题型注册键；另有独立背单词模块。
 
 ## 对话填空——音频规则（需求 8，规范性）
 
@@ -20,7 +20,7 @@
   - 第 1 行 TTS 输入：`Guten Tag!`（Max 行角色）
   - 第 2 行 TTS 输入：`Guten Tag!`（Kari 行角色）
 - **禁止**：朗读 `Max:` / `Kari:` 标签；播放带静默空或提示音的空行；播放 `A: B: Guten Tag!` 式缺行拼接。
-- 实现钩子：生成管线产出 `{sentenceId}-revealed-{Voice}.mp3`（见 `audio-asset-spec.md`）；题型引擎将填空题映射到补全版音频；说话人标签从结构上就不进入 TTS 文本字段。
+- 实现钩子：生成管线产出 `{sentenceId}-revealed-{assetFileToken}.mp3`（见 `audio-asset-spec.md`）；题型引擎将填空题映射到补全版音频；说话人标签从结构上就不进入 TTS 文本字段。
 
 ## 判分惯例
 
