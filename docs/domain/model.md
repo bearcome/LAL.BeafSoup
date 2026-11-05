@@ -38,7 +38,7 @@
 ## 习题模块（Exercises）
 
 - **`ExerciseInstance`**：题型注册表键、题目负载版本、提示数据和难度；`IExerciseHandler` 负责负载校验、呈现契约及判分。新增题型通过注册扩展，不修改课程编排器。
-- 五个题型注册键：`WordDefinitionMcq`、`SentenceClozeMcq`、`SentenceClozeInput`、`DialogueListeningMcq`、`DialogueCloze`。`DialogueCloze` 的版本化负载明确指定 `responseMode`（选择或输入）；`MockExam` 是 Exam 模块的整卷编排，不是题型键。
+- 六个题型注册键：`WordDefinitionMcq`、`SentenceClozeMcq`、`SentenceClozeInput`、`SentenceTranslationOrder`、`DialogueListeningMcq`、`DialogueCloze`。`DialogueCloze` 的版本化负载明确指定 `responseMode`（选择或输入）；`MockExam` 是 Exam 模块的整卷编排，不是题型键。
 
 ## 音频模块（Audio）
 

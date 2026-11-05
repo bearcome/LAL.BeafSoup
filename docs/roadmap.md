@@ -32,7 +32,7 @@
 
 ## 第 4 阶段 — 学习功能
 
-- 课程引擎 + 题型注册表；落地 `docs/features/exercise-types.md` 中的五种题型（含对话填空音频规则）
+- 课程引擎 + 题型注册表；落地 `docs/features/exercise-types.md` 中的六种题型（含对话填空音频规则）
 - 点词弹层（`docs/features/word-inspector-popover.md`）
 - 带 SRS 的背单词模块（`docs/features/vocabulary-trainer.md`）
 - 多邻国式学习闭环（`docs/features/feature-catalog.md`）
