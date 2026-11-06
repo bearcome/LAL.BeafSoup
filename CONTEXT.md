@@ -30,8 +30,8 @@
 
 ## 3. 当前阶段
 
-- **第 0 阶段（当前）**：仓库骨架 + 文档体系，**不写正式代码**。
-- `src/` 与 `test/` 保持为空，直到第 1 阶段启动（见 `docs/roadmap.md`）。
+- **第 1 阶段（进行中）**：解决方案骨架（.slnx）+ 领域核心（SharedKernel 与 Localization/Vocabulary/Content/Exercises.Domain.Shared/Audio/Learning 的 Domain 层）+ 领域/架构测试 + CI 骨架已落地；另提前实现了音频离线生成工具与每种数据 3 条的种子测试数据。
+- 数据库 Schema、Application/HttpApi 层、Blazor 客户端留待各自阶段；`src/` 与 `test/` 的其余部分按阶段规则逐步填充。
 
 ## 4. 首个里程碑范围（中文学德语）
 

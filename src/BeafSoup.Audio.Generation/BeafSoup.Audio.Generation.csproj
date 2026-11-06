@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>BeafSoup.Audio.Generation</RootNamespace>
+    <!-- 离线生成工具允许引用各模块 Domain；它不是 Blazor 客户端，也不进入 WASM 产物 -->
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="BeafSoup.Audio.Generation.Tests" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Modules/Audio/BeafSoup.Audio.Domain/BeafSoup.Audio.Domain.csproj" />
+    <ProjectReference Include="../Modules/Localization/BeafSoup.Localization.Domain/BeafSoup.Localization.Domain.csproj" />
+    <ProjectReference Include="../Modules/Vocabulary/BeafSoup.Vocabulary.Domain/BeafSoup.Vocabulary.Domain.csproj" />
+    <ProjectReference Include="../Modules/Content/BeafSoup.Content.Domain/BeafSoup.Content.Domain.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Update="appsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+</Project>

@@ -1,0 +1,27 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/BeafSoup.SharedKernel/BeafSoup.SharedKernel.csproj" />
+    <Project Path="src/Modules/Localization/BeafSoup.Localization.Domain.Shared/BeafSoup.Localization.Domain.Shared.csproj" />
+    <Project Path="src/Modules/Localization/BeafSoup.Localization.Domain/BeafSoup.Localization.Domain.csproj" />
+    <Project Path="src/Modules/Vocabulary/BeafSoup.Vocabulary.Domain.Shared/BeafSoup.Vocabulary.Domain.Shared.csproj" />
+    <Project Path="src/Modules/Vocabulary/BeafSoup.Vocabulary.Domain/BeafSoup.Vocabulary.Domain.csproj" />
+    <Project Path="src/Modules/Content/BeafSoup.Content.Domain.Shared/BeafSoup.Content.Domain.Shared.csproj" />
+    <Project Path="src/Modules/Content/BeafSoup.Content.Domain/BeafSoup.Content.Domain.csproj" />
+    <Project Path="src/Modules/Exercises/BeafSoup.Exercises.Domain.Shared/BeafSoup.Exercises.Domain.Shared.csproj" />
+    <Project Path="src/Modules/Audio/BeafSoup.Audio.Domain.Shared/BeafSoup.Audio.Domain.Shared.csproj" />
+    <Project Path="src/Modules/Audio/BeafSoup.Audio.Domain/BeafSoup.Audio.Domain.csproj" />
+    <Project Path="src/Modules/Learning/BeafSoup.Learning.Domain.Shared/BeafSoup.Learning.Domain.Shared.csproj" />
+    <Project Path="src/Modules/Learning/BeafSoup.Learning.Domain/BeafSoup.Learning.Domain.csproj" />
+    <Project Path="src/BeafSoup.Audio.Generation/BeafSoup.Audio.Generation.csproj" />
+  </Folder>
+  <Folder Name="/test/">
+    <Project Path="test/Modules/BeafSoup.SharedKernel.Tests/BeafSoup.SharedKernel.Tests.csproj" />
+    <Project Path="test/Modules/BeafSoup.Localization.Domain.Tests/BeafSoup.Localization.Domain.Tests.csproj" />
+    <Project Path="test/Modules/BeafSoup.Vocabulary.Domain.Tests/BeafSoup.Vocabulary.Domain.Tests.csproj" />
+    <Project Path="test/Modules/BeafSoup.Content.Domain.Tests/BeafSoup.Content.Domain.Tests.csproj" />
+    <Project Path="test/Modules/BeafSoup.Audio.Domain.Tests/BeafSoup.Audio.Domain.Tests.csproj" />
+    <Project Path="test/Modules/BeafSoup.Learning.Domain.Tests/BeafSoup.Learning.Domain.Tests.csproj" />
+    <Project Path="test/BeafSoup.Architecture.Tests/BeafSoup.Architecture.Tests.csproj" />
+    <Project Path="test/Modules/BeafSoup.Audio.Generation.Tests/BeafSoup.Audio.Generation.Tests.csproj" />
+  </Folder>
+</Solution>

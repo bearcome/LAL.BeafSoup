@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="FluentAssertions" />
+    <PackageReference Include="NetArchTest.Rules" />
+    <ProjectReference Include="../../src/BeafSoup.SharedKernel/BeafSoup.SharedKernel.csproj" />
+    <ProjectReference Include="../../src/Modules/Localization/BeafSoup.Localization.Domain/BeafSoup.Localization.Domain.csproj" />
+    <ProjectReference Include="../../src/Modules/Localization/BeafSoup.Localization.Domain.Shared/BeafSoup.Localization.Domain.Shared.csproj" />
+    <ProjectReference Include="../../src/Modules/Vocabulary/BeafSoup.Vocabulary.Domain/BeafSoup.Vocabulary.Domain.csproj" />
+    <ProjectReference Include="../../src/Modules/Vocabulary/BeafSoup.Vocabulary.Domain.Shared/BeafSoup.Vocabulary.Domain.Shared.csproj" />
+    <ProjectReference Include="../../src/Modules/Content/BeafSoup.Content.Domain/BeafSoup.Content.Domain.csproj" />
+    <ProjectReference Include="../../src/Modules/Content/BeafSoup.Content.Domain.Shared/BeafSoup.Content.Domain.Shared.csproj" />
+    <ProjectReference Include="../../src/Modules/Exercises/BeafSoup.Exercises.Domain.Shared/BeafSoup.Exercises.Domain.Shared.csproj" />
+    <ProjectReference Include="../../src/Modules/Audio/BeafSoup.Audio.Domain/BeafSoup.Audio.Domain.csproj" />
+    <ProjectReference Include="../../src/Modules/Audio/BeafSoup.Audio.Domain.Shared/BeafSoup.Audio.Domain.Shared.csproj" />
+    <ProjectReference Include="../../src/Modules/Learning/BeafSoup.Learning.Domain/BeafSoup.Learning.Domain.csproj" />
+    <ProjectReference Include="../../src/Modules/Learning/BeafSoup.Learning.Domain.Shared/BeafSoup.Learning.Domain.Shared.csproj" />
+  </ItemGroup>
+</Project>

@@ -12,10 +12,12 @@
 
 ## 第 1 阶段 — 解决方案骨架与领域核心
 
-- 按 `docs/architecture/solution-skeleton.md` 创建 `.sln` 与项目布局
-- 领域层：按 `docs/domain/model.md` 实现聚合与值对象（不含存储、不含 UI）
-- 领域不变量单元测试（歧义词形检索、翻译修订导致的标注失效、Lemma 级 SRS 卡与形态掌握度、语义键唯一性、音频路径生成）
-- CI：`dotnet build` 零警告 + `dotnet test`
+- [x] 按 `docs/architecture/solution-skeleton.md` 创建 `.sln` 与项目布局（实际为 .NET 11 新格式 `.slnx`）
+- [x] 领域层：按 `docs/domain/model.md` 实现聚合与值对象（不含存储、不含 UI；仅建各模块 Domain.Shared + Domain）
+- [x] 领域不变量单元测试（歧义词形检索、翻译修订导致的标注失效、Lemma 级 SRS 卡与形态掌握度、语义键唯一性、音频路径生成）
+- [x] 架构测试：模块依赖方向（NetArchTest）
+- [x] CI：`dotnet build` 零警告 + `dotnet test`
+- 附带回环产物：`BeafSoup.Audio.Generation` 离线工具 + `data/seed/` 每种数据 3 条测试数据 + `media/audio/` 18 个生成资产（原计划第 2 阶段的管线部分，提前落地；数据库 Schema 仍属第 2 阶段）
 
 ## 第 2 阶段 — 内容与本地化数据层
 

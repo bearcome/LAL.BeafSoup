@@ -36,8 +36,9 @@
 ## 生成管线（离线，第 2 阶段）
 
 1. 内容数据（句子含每行角色 + **TTS 文本**字段）→ 批量控制台工具（`BeafSoup.Audio.Generation`）。
-2. 工具渲染 SSML → 调用 Azure TTS → 按约定写文件；幂等（已存在则跳过）。
-3. Azure 密钥只存在于工具的本地配置（`.env`，已 git 忽略）；WASM 应用永不直接调用 Azure。
+2. 工具渲染 SSML → 调用 Azure TTS → 按约定写文件；幂等（已存在则跳过，`--force` 重生成）。
+3. Azure 密钥只存在于仓库根 `secret.json`（已 git 忽略，结构 `AzureTTS: { Endpoint, ApiKey, Region }`），由工具运行时绑定；非机密配置（输出目录、CEFR→语速映射、角色韵律覆盖）在工具的 `appsettings.json`。WASM 应用永不直接调用 Azure。
+4. 工具命令：`validate`（只校验种子数据，不触网）、`generate --dry-run`（打印资产清单）、`generate`（实际合成并写 `manifest.json`）。
 
 ## 内容硬规则
 

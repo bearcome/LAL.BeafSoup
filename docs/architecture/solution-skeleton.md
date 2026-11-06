@@ -38,3 +38,10 @@ LAL.BeafSoup.sln
 - `HttpApi.Host` 是服务端组合入口；`Blazor.Client` 是唯一 WASM 入口，不引用 Domain、Application 或基础设施。
 - 初始阶段只创建当前阶段所需模块项目，不提前生成未实现模块的空壳。
 - 注释用中文；标识符用英文。
+
+## 第 1 阶段实际落地（2026-11）
+
+- 解决方案采用 .NET 11 新格式 `LAL.BeafSoup.slnx`。
+- 仅创建 SharedKernel 与 Localization/Vocabulary/Content/Audio/Learning 的 `Domain.Shared` + `Domain`；Exercises 仅 `Domain.Shared`（题型注册键常量）。
+- Application/EntityFrameworkCore/HttpApi 空壳未创建；Exam/Identity/UsageAnalytics 模块整体留待各自阶段。
+- 另建 `src/BeafSoup.Audio.Generation` 离线 TTS 工具（允许引用各模块 Domain，不进入 WASM 产物）。

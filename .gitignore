@@ -55,3 +55,9 @@ CodeCoverage/
 *.VisualState.xml
 TestResult.xml
 nunit-*.xml
+/secret.json
+/.github/*
+/media/*
+/docs/superpowers/plans
+/data/seed
+/docs/superpowers/specs
