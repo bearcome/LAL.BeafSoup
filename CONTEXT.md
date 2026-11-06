@@ -18,7 +18,7 @@
 | 前端 | Blazor WebAssembly，**独立部署**（不依赖服务端托管，纯静态文件） |
 | 语言/框架 | C# / .NET 11（Latest 版本），启用可空引用类型 |
 | 架构 | DDD 领域驱动、模块化单体，模式参考 ABP vNext（领域服务、仓储抽象、规约模式、模块插件） |
-| 数据 | "语义键 + 语言代号"设计（见 `docs/domain/localization-data-design.md`）；账户与学习状态由 API 服务端权威持久化，数据库供应商待 ADR 决定 |
+| 数据 | "语义键 + 语言代号"设计（见 `docs/domain/localization-data-design.md`）；账户与学习状态由 API 服务端权威持久化，权威数据库为 SQLite（见 ADR-005） |
 | 音频 | Azure TTS（免费额度预算）；音频为预生成的静态文件（见 `docs/domain/audio-asset-spec.md`） |
 | 样式 | CSS 自定义属性实现亮/暗主题，响应式布局（见 `docs/features/ui-theming-responsive.md`） |
 
@@ -30,8 +30,9 @@
 
 ## 3. 当前阶段
 
-- **第 1 阶段（进行中）**：解决方案骨架（.slnx）+ 领域核心（SharedKernel 与 Localization/Vocabulary/Content/Exercises.Domain.Shared/Audio/Learning 的 Domain 层）+ 领域/架构测试 + CI 骨架已落地；另提前实现了音频离线生成工具与每种数据 3 条的种子测试数据。
-- 数据库 Schema、Application/HttpApi 层、Blazor 客户端留待各自阶段；`src/` 与 `test/` 的其余部分按阶段规则逐步填充。
+- **第 1 阶段（已完成）**：解决方案骨架（.slnx）+ 领域核心（SharedKernel 与 Localization/Vocabulary/Content/Exercises.Domain.Shared/Audio/Learning 的 Domain 层）+ 领域/架构测试 + CI 骨架；另提前实现了音频离线生成工具与每种数据 3 条的种子测试数据。
+- **第 2 阶段（进行中）**：数据库 Schema（SQLite，每模块独立 DbContext 与迁移，见 ADR-005 与 `docs/architecture/database-schema.md`）+ `BeafSoup.DbMigrator` 迁移/种子工具 + 内容数据入库管线；音频离线生成管线已在第 1 阶段提前落地。
+- Application/HttpApi 层、Blazor 客户端留待各自阶段；`src/` 与 `test/` 的其余部分按阶段规则逐步填充。
 
 ## 4. 首个里程碑范围（中文学德语）
 
@@ -58,7 +59,7 @@
 
 | 编号 | 问题 | 状态 |
 |---|---|---|
-| Q1 | 服务端权威数据的数据库供应商、备份与迁移策略 | 需在第 2 阶段前出 ADR；权威边界见 ADR-004 |
+| Q1 | 服务端权威数据的数据库供应商、备份与迁移策略 | 已决定 SQLite，备份与迁移策略见 ADR-005 |
 | Q2 | 身份提供方、账户验证/恢复/删除策略 | 需在第 3 阶段前出 ADR；API 必须支持替换提供方 |
 | Q3 | SRS 算法选择 | 已决定 FSRS，卡片粒度与版本策略见 ADR-003 |
 | Q4 | 模拟考题库来源：自编还是授权真题 | 待定 |

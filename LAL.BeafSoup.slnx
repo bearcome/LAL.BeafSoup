@@ -13,6 +13,10 @@
     <Project Path="src/Modules/Learning/BeafSoup.Learning.Domain.Shared/BeafSoup.Learning.Domain.Shared.csproj" />
     <Project Path="src/Modules/Learning/BeafSoup.Learning.Domain/BeafSoup.Learning.Domain.csproj" />
     <Project Path="src/BeafSoup.Audio.Generation/BeafSoup.Audio.Generation.csproj" />
+    <Project Path="src/Modules/Localization/BeafSoup.Localization.EntityFrameworkCore/BeafSoup.Localization.EntityFrameworkCore.csproj" />
+    <Project Path="src/Modules/Vocabulary/BeafSoup.Vocabulary.EntityFrameworkCore/BeafSoup.Vocabulary.EntityFrameworkCore.csproj" />
+    <Project Path="src/Modules/Content/BeafSoup.Content.EntityFrameworkCore/BeafSoup.Content.EntityFrameworkCore.csproj" />
+    <Project Path="src/BeafSoup.DbMigrator/BeafSoup.DbMigrator.csproj" />
   </Folder>
   <Folder Name="/test/">
     <Project Path="test/Modules/BeafSoup.SharedKernel.Tests/BeafSoup.SharedKernel.Tests.csproj" />
@@ -23,5 +27,9 @@
     <Project Path="test/Modules/BeafSoup.Learning.Domain.Tests/BeafSoup.Learning.Domain.Tests.csproj" />
     <Project Path="test/BeafSoup.Architecture.Tests/BeafSoup.Architecture.Tests.csproj" />
     <Project Path="test/Modules/BeafSoup.Audio.Generation.Tests/BeafSoup.Audio.Generation.Tests.csproj" />
+    <Project Path="test/Modules/BeafSoup.Localization.EntityFrameworkCore.Tests/BeafSoup.Localization.EntityFrameworkCore.Tests.csproj" />
+    <Project Path="test/Modules/BeafSoup.Vocabulary.EntityFrameworkCore.Tests/BeafSoup.Vocabulary.EntityFrameworkCore.Tests.csproj" />
+    <Project Path="test/Modules/BeafSoup.Content.EntityFrameworkCore.Tests/BeafSoup.Content.EntityFrameworkCore.Tests.csproj" />
+    <Project Path="test/BeafSoup.DbMigrator.Tests/BeafSoup.DbMigrator.Tests.csproj" />
   </Folder>
 </Solution>

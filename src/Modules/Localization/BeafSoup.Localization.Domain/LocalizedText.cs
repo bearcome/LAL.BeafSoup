@@ -21,6 +21,16 @@ public sealed record LocalizedText
         return new LocalizedText(key, language, text.Trim(), 1, lemmaKey);
     }
 
+    /// <summary>持久化还原专用：按既有列值原样重建（含修订号），不重排修订；正常运行路径必须使用 Create/Revise。</summary>
+    public static LocalizedText Restore(SemanticKey key, LanguageCode language, string text, int revision, SemanticKey? lemmaKey)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            throw new DomainException(LocalizationErrorCodes.EmptyText, "本地化文本不能为空。");
+        if (revision < 1)
+            throw new DomainException(LocalizationErrorCodes.InvalidRevision, "文本修订号必须不小于 1。");
+        return new LocalizedText(key, language, text.Trim(), revision, lemmaKey);
+    }
+
     /// <summary>文本修订：内容变化时递增修订号；同值重写视为无操作（不重排修订号）。</summary>
     public LocalizedText Revise(string newText)
     {

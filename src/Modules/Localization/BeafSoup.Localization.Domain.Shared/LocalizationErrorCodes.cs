@@ -8,4 +8,5 @@ public static class LocalizationErrorCodes
     public const string WrongLanguage = "Localization:WrongLanguage";
     public const string InvalidAssetFileToken = "Localization:InvalidAssetFileToken";
     public const string InvalidTtsVoiceName = "Localization:InvalidTtsVoiceName";
+    public const string InvalidRevision = "Localization:InvalidRevision";
 }

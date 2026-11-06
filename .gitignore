@@ -61,3 +61,8 @@ nunit-*.xml
 /docs/superpowers/plans
 /data/seed
 /docs/superpowers/specs
+
+# SQLite 权威数据库（ADR-005）：本地/开发库文件不入库
+*.db
+*.db-wal
+*.db-shm

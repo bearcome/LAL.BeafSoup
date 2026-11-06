@@ -22,12 +22,14 @@ public static class AudioAssetPlanner
         {
             var lemmaText = seed.LocalizedTexts.First(t => t.Key == lemma.LemmaKey && t.Language == lemma.Language).Text;
             var article = lemma.Article?.ToString().ToLowerInvariant();
+            // 名词单词音频须带冠词朗读（如 "der Kaffee"），无冠词词仅朗读词元；见 audio-asset-spec.md 内容硬规则
+            var ttsText = article is null ? lemmaText : $"{article} {lemmaText}";
             foreach (var (role, config) in rolesByLanguage[lemma.Language.Value])
             {
                 var asset = AudioAsset.Word(lemma.Language, article, lemmaText, role);
                 plan.Add(new PlannedAsset(
                     AudioPathBuilder.BuildRelativePath(asset, config.AssetFileToken),
-                    normalizer.Normalize(lemmaText),
+                    normalizer.Normalize(ttsText),
                     config.TtsVoiceName,
                     config.AssetFileToken,
                     SourceKind: "word",

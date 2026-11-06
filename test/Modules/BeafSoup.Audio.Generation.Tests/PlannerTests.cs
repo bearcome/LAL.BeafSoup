@@ -73,6 +73,45 @@ public class AudioAssetPlannerTests
     }
 
     [Fact]
+    public void 名词单词音频TTS文本带冠词朗读_其他词性仅词元()
+    {
+        var seed = new SeedData
+        {
+            VoiceRoles =
+            [
+                new() { Language = "de-DE", Role = "Male", AssetFileToken = "Max", TtsVoiceName = "de-DE-ConradNeural" },
+                new() { Language = "de-DE", Role = "Female", AssetFileToken = "Mia", TtsVoiceName = "de-DE-KatjaNeural" },
+                new() { Language = "de-DE", Role = "Child", AssetFileToken = "Lars", TtsVoiceName = "de-DE-KasperNeural" },
+            ],
+            Lemmas =
+            [
+                new()
+                {
+                    Key = "word.coffee", Language = "de-DE", PartOfSpeech = "Noun", Article = "Der", Cefr = "A1",
+                    Translations = new() { ["de-DE"] = "Kaffee" },
+                    Forms = [new() { Key = "word.coffee", Surface = "Kaffee", Analyses = [new()] }],
+                },
+                new()
+                {
+                    Key = "verb.drink", Language = "de-DE", PartOfSpeech = "Verb", Article = null, Cefr = "A1",
+                    Translations = new() { ["de-DE"] = "trinken" },
+                    Forms = [new() { Key = "verb.drink", Surface = "trinken", Analyses = [new()] }],
+                },
+            ],
+        };
+        var result = SeedValidator.Validate(seed);
+        result.IsValid.Should().BeTrue(string.Join(";", result.Errors));
+        var options = new ToolOptions { SeedDirectory = "", OutputDirectory = "", CefrRates = [], RoleProsody = [] };
+
+        var plan = AudioAssetPlanner.Plan(result.Value!, options);
+
+        plan.Where(p => p.SourceKind == "word" && p.SourceKey == "word.coffee")
+            .Should().OnlyContain(p => p.TtsText == "der Kaffee");
+        plan.Where(p => p.SourceKind == "word" && p.SourceKey == "verb.drink")
+            .Should().OnlyContain(p => p.TtsText == "trinken");
+    }
+
+    [Fact]
     public void 对话行角色组合全部被计划覆盖_且说话人标签不进入TTS文本()
     {
         var options = new ToolOptions { SeedDirectory = "", OutputDirectory = "", CefrRates = [], RoleProsody = [] };

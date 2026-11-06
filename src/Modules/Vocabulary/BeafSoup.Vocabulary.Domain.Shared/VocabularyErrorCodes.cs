@@ -8,4 +8,5 @@ public static class VocabularyErrorCodes
     public const string DuplicateAnalysis = "Vocabulary:DuplicateAnalysis";
     public const string DuplicateTag = "Vocabulary:DuplicateTag";
     public const string EmptyTag = "Vocabulary:EmptyTag";
+    public const string InvalidFormId = "Vocabulary:InvalidFormId";
 }

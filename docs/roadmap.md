@@ -21,9 +21,11 @@
 
 ## 第 2 阶段 — 内容与本地化数据层
 
-- 按 `docs/domain/localization-data-design.md` 建立数据库 Schema
-- 内容填充管线：中文学德语课程数据（单词、词元、全部形态、句子、对话）
-- 离线音频生成管线，按 `docs/domain/audio-asset-spec.md` 执行；Azure TTS 免费额度；de-DE 配置 3 个音色角色
+- [x] 数据库供应商与备份/迁移策略 ADR（[ADR-005](architecture/adr/ADR-005-sqlite-authority-database.md)，SQLite）
+- [x] 按 `docs/domain/localization-data-design.md` 与 `docs/architecture/database-schema.md` 建立数据库 Schema（Localization/Vocabulary/Content 三模块 DbContext + EF 迁移）
+- [x] 内容入库管线：`BeafSoup.DbMigrator`（migrate / seed / reset）+ 持久化往返集成测试
+- [x] 离线音频生成管线，按 `docs/domain/audio-asset-spec.md` 执行（第 1 阶段提前落地，本轮同步名词带冠词朗读规则）；Azure TTS 免费额度；de-DE 配置 3 个音色角色
+- [ ] 中文学德语完整课程数据（当前为每种数据 3 条的种子测试数据，正式内容填充列入后续迭代）
 
 ## 第 3 阶段 — Blazor WASM 外壳
 

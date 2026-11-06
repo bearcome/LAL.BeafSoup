@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Modules/Localization/BeafSoup.Localization.EntityFrameworkCore/BeafSoup.Localization.EntityFrameworkCore.csproj" />
+    <ProjectReference Include="../Modules/Vocabulary/BeafSoup.Vocabulary.EntityFrameworkCore/BeafSoup.Vocabulary.EntityFrameworkCore.csproj" />
+    <ProjectReference Include="../Modules/Content/BeafSoup.Content.EntityFrameworkCore/BeafSoup.Content.EntityFrameworkCore.csproj" />
+    <!-- 复用种子加载与领域校验（SeedLoader/SeedValidator），避免第二份种子映射逻辑 -->
+    <ProjectReference Include="../BeafSoup.Audio.Generation/BeafSoup.Audio.Generation.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Update="appsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+</Project>

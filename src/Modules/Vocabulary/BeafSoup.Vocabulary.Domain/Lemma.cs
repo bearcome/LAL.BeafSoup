@@ -40,6 +40,14 @@ public sealed class Lemma
         return form;
     }
 
+    /// <summary>持久化还原专用：以既有 Id 恢复词形，保证 InflectionFormId 跨读写稳定；正常运行路径使用 AddForm。</summary>
+    public InflectionForm RestoreForm(SemanticKey surfaceKey, Guid formId, IReadOnlyList<GrammaticalAnalysis> analyses)
+    {
+        var form = InflectionForm.Restore(formId, surfaceKey, analyses);
+        _forms.Add(form);
+        return form;
+    }
+
     public void AddTag(string tag)
     {
         if (string.IsNullOrWhiteSpace(tag))
