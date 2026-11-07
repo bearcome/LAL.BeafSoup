@@ -38,100 +38,91 @@ public sealed class TempVocabularyDatabase : IAsyncDisposable
 
 public class VocabularyPersistenceTests
 {
-    private static IReadOnlyList<Lemma> BuildSeedLemmas()
+    private static readonly LanguageCode De = LanguageCode.Of("de-DE");
+    private static readonly LanguageCode Zh = LanguageCode.Of("zh-CN");
+
+    // 与 data/seed/concepts.json 同构的内存概念：一词多语、一义多词元、范式槽位
+    private static LexicalConcept BuildDrinkConcept()
     {
-        // 与 data/seed/lemmas.json 同构的内存词元：名词（二词形）+ 动词（二词形）
-        var coffee = Lemma.Create(
-            Guid.NewGuid(), LanguageCode.Of("de-DE"), SemanticKey.Of("word.coffee"),
-            PartOfSpeech.Noun, GermanArticle.Der, CefrLevel.A1,
-            InflectionForm.Create(SemanticKey.Of("word.coffee"), new GrammaticalAnalysis[]
-            {
-                new(GrammaticalCase.Nominative, GrammaticalNumber.Singular, Gender: GrammaticalGender.Masculine),
-                new(GrammaticalCase.Dative, GrammaticalNumber.Singular, Gender: GrammaticalGender.Masculine),
-            }));
-        coffee.AddTag("food");
-        coffee.AddTag("daily");
-        coffee.AddForm(SemanticKey.Of("word.coffee.form.plural"), new GrammaticalAnalysis[]
-        {
-            new(GrammaticalCase.Nominative, GrammaticalNumber.Plural),
-            new(GrammaticalCase.Accusative, GrammaticalNumber.Plural),
-        });
-
-        var drink = Lemma.Create(
-            Guid.NewGuid(), LanguageCode.Of("de-DE"), SemanticKey.Of("verb.drink"),
-            PartOfSpeech.Verb, article: null, CefrLevel.A1,
-            InflectionForm.Create(SemanticKey.Of("verb.drink"), new GrammaticalAnalysis[] { new(Tense: GrammaticalTense.Present) }));
-        drink.AddForm(SemanticKey.Of("verb.drink.form.1sg"), new GrammaticalAnalysis[]
-        {
-            new(Person: GrammaticalPerson.First, Number: GrammaticalNumber.Singular, Tense: GrammaticalTense.Present),
-        });
-
-        return [coffee, drink];
+        var concept = new LexicalConcept(SemanticKey.Of("concept.drink"), PartOfSpeech.Verb, LexemeKind.Word);
+        var trinken = concept.AddLexeme(De, "trinken", isPrimary: true, LexemeRegister.Neutral, article: null, CefrLevel.A1);
+        trinken.AddTag("daily");
+        var present = new[] { "trinke", "trinkst", "trinkt", "trinken", "trinkt", "trinken" };
+        for (var slot = 0; slot < present.Length; slot++)
+            trinken.AddParadigmCell(ParadigmCell.ComputeId("concept.drink", "de-DE", "trinken", "indicative_present", slot), "indicative_present", slot,
+                present[slot]);
+        concept.AddLexeme(De, "zechen", isPrimary: false, LexemeRegister.Elevated, article: null, CefrLevel.B2);
+        concept.AddLexeme(Zh, "喝", isPrimary: true, LexemeRegister.Common, article: null, CefrLevel.A1);
+        return concept;
     }
 
     [Fact]
-    public async Task 词元词形语法分析与标签往返一致_形态顺序保留()
+    public async Task 概念词元范式槽位与标签往返一致_槽位顺序保留()
     {
-        var seedLemmas = BuildSeedLemmas();
+        var seed = BuildDrinkConcept();
         await using var database = new TempVocabularyDatabase();
 
         await using (var context = await database.CreateAndMigrateAsync())
         {
-            context.Lemmas.AddRange(seedLemmas.Select(VocabularyPersistenceMapper.ToRow));
+            context.LexicalConcepts.Add(VocabularyPersistenceMapper.ToRow(seed));
             await context.SaveChangesAsync();
         }
 
         await using var read = database.CreateContext();
-        var restored = (await read.Lemmas.OrderBy(l => l.LemmaKey).ToListAsync())
-            .Select(VocabularyPersistenceMapper.ToDomain)
-            .ToArray();
+        var restored = VocabularyPersistenceMapper.ToDomain(
+            await read.LexicalConcepts.SingleAsync(c => c.ConceptKey == "concept.drink"));
 
-        var expected = seedLemmas.OrderBy(l => l.LemmaKey.Value).ToArray();
-        restored.Should().BeEquivalentTo(expected,
-            options => options.WithStrictOrderingFor(l => l.Forms).WithStrictOrderingFor(l => l.Tags));
+        restored.Should().BeEquivalentTo(seed,
+            options => options.WithStrictOrderingFor(c => c.Lexemes));
+        // 标签与范式槽位顺序保持（槽位序号即人称/数或格/数约定）
+        foreach (var (expectedLexeme, restoredLexeme) in
+                 seed.Lexemes.Zip(restored.Lexemes, (expected, actual) => (expected, actual)))
+        {
+            restoredLexeme.Tags.Should().Equal(expectedLexeme.Tags);
+            restoredLexeme.Cells.Select(c => (c.ParadigmKey, c.SlotOrdinal, c.Surface, c.Id)).Should()
+                .Equal(expectedLexeme.Cells.Select(c => (c.ParadigmKey, c.SlotOrdinal, c.Surface, c.Id)));
+        }
+        // Id 全部按领域规则确定性生成，跨读写稳定（形态掌握度与句子标注可安全引用）
+        restored.Id.Should().Be(seed.Id);
+        restored.Lexemes.Select(l => l.Id).Should().Equal(seed.Lexemes.Select(l => l.Id));
+        restored.Lexemes.SelectMany(l => l.Cells).Select(c => c.Id)
+            .Should().Equal(seed.Lexemes.SelectMany(l => l.Cells).Select(c => c.Id));
     }
 
     [Fact]
-    public async Task 原形词形由词元键识别_缺原形的库数据还原时失败()
+    public async Task 概念键全局唯一()
     {
-        var coffee = BuildSeedLemmas().Single(l => l.LemmaKey.Value == "word.coffee");
         await using var database = new TempVocabularyDatabase();
-
         await using (var context = await database.CreateAndMigrateAsync())
         {
-            context.Lemmas.Add(VocabularyPersistenceMapper.ToRow(coffee));
+            context.LexicalConcepts.Add(VocabularyPersistenceMapper.ToRow(BuildDrinkConcept()));
             await context.SaveChangesAsync();
         }
 
-        await using var read = database.CreateContext();
-        var row = await read.Lemmas.SingleAsync(l => l.LemmaKey == "word.coffee");
-        row.Forms.RemoveAll(f => f.SurfaceKey == "word.coffee"); // 破坏数据：抽掉原形词形
-
-        var act = () => VocabularyPersistenceMapper.ToDomain(row);
-        act.Should().Throw<InvalidOperationException>();
-    }
-
-    [Fact]
-    public async Task 词元键全局唯一()
-    {
-        var coffee = BuildSeedLemmas().Single(l => l.LemmaKey.Value == "word.coffee");
-        await using var database = new TempVocabularyDatabase();
-
-        await using (var context = await database.CreateAndMigrateAsync())
-        {
-            context.Lemmas.Add(VocabularyPersistenceMapper.ToRow(coffee));
-            await context.SaveChangesAsync();
-        }
-
-        // 同一 LemmaKey 不允许第二个词元（不同词义必须用语义键区分，见 model.md）
+        // 同一 ConceptKey 不允许第二个概念（不同词义必须用不同语义键，见 model.md）
         await using var duplicate = database.CreateContext();
-        var clone = Lemma.Create(
-            Guid.NewGuid(), LanguageCode.Of("de-DE"), SemanticKey.Of("word.coffee"),
-            PartOfSpeech.Noun, GermanArticle.Der, CefrLevel.A1,
-            InflectionForm.Create(SemanticKey.Of("word.coffee"), new GrammaticalAnalysis[] { new() }));
-        duplicate.Lemmas.Add(VocabularyPersistenceMapper.ToRow(clone));
+        var clone = new LexicalConcept(SemanticKey.Of("concept.drink"), PartOfSpeech.Verb, LexemeKind.Word);
+        duplicate.LexicalConcepts.Add(VocabularyPersistenceMapper.ToRow(clone));
 
         var act = () => duplicate.SaveChangesAsync();
         await act.Should().ThrowAsync<DbUpdateException>();
+    }
+
+    [Fact]
+    public async Task 还原时主词元不变量仍由领域校验()
+    {
+        await using var database = new TempVocabularyDatabase();
+        await using (var context = await database.CreateAndMigrateAsync())
+        {
+            context.LexicalConcepts.Add(VocabularyPersistenceMapper.ToRow(BuildDrinkConcept()));
+            await context.SaveChangesAsync();
+        }
+
+        await using var read = database.CreateContext();
+        var row = await read.LexicalConcepts.SingleAsync(c => c.ConceptKey == "concept.drink");
+        row.Lexemes.Single(l => l.Lemma == "喝").IsPrimary = false; // 破坏数据：抽掉中文主词元
+
+        var act = () => VocabularyPersistenceMapper.ToDomain(row);
+        act.Should().Throw<DomainException>().Which.Code.Should().Be(VocabularyErrorCodes.MissingPrimaryLexeme);
     }
 }

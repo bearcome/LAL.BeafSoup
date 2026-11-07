@@ -28,7 +28,6 @@
 | `LanguageCode` | TEXT PK | `de-DE`/`zh-CN`/… |
 | `Text` | TEXT | 该语言版本全文 |
 | `Revision` | INTEGER | 每次文本变更递增，初始 1；标注绑定此修订号 |
-| `LemmaKey` | TEXT NULL，索引 | 词形/词条目指向其词原型键（可选） |
 
 主键 `(Key, LanguageCode)`：一个键可存 N 种语言，同键同语言仅一行。
 
@@ -45,33 +44,43 @@
 
 ## Vocabulary 模块（`VocabularyDbContext`）
 
-### `lemmas` — 词元
+### `lexical_concepts` — 语义概念（跨语言聚合根）
 
 | 列 | 类型 | 说明 |
 |---|---|---|
-| `Id` | TEXT PK | 稳定 Guid |
-| `LanguageCode` | TEXT | |
-| `LemmaKey` | TEXT UNIQUE | 词形语义键，全局唯一 |
-| `PartOfSpeech` | TEXT | Noun/Verb/Adjective/… |
+| `Id` | TEXT PK | 稳定 Guid（由 concept 键确定性生成） |
+| `ConceptKey` | TEXT UNIQUE | 语义键，命名空间 `concept.*`，如 `concept.drink` |
+| `PartOfSpeech` | TEXT | Noun/Verb/Adjective/…（concept 级） |
+| `Kind` | TEXT | `Word`/`Phrase`；短语的 lemma 用 `_` 连接词与词 |
+
+### `lexemes` — 词元（每概念每语言 0..n 个）
+
+| 列 | 类型 | 说明 |
+|---|---|---|
+| `Id` | TEXT PK | 稳定 Guid（由 concept+语言+lemma 确定性生成） |
+| `ConceptId` | TEXT FK | 级联删除 |
+| `LanguageCode` | TEXT | `de-DE`/`zh-CN`/… |
+| `Ordinal` | INTEGER | 同 (概念, 语言) 内保序 |
+| `Lemma` | TEXT | 原形检索词（短语含 `_`） |
+| `DisplayWord` | TEXT NULL | 展示文本（名词含冠词，如 `der Kaffee`）；NULL = 同 Lemma |
+| `IsPrimary` | INTEGER | 每个 (概念, 语言) 恰一行 = 1（领域校验） |
+| `Register` | TEXT | 语体：Neutral/Elevated/Colloquial/Common/Literary |
 | `Article` | TEXT NULL | `Der`/`Die`/`Das`，仅名词 |
 | `Cefr` | TEXT | A1–C2 |
 
-### `lemma_tags`
+### `lexeme_tags`
 
-主键 `(LemmaId, Ordinal)`；`Tag` ≤64。词元的受控标签，保序。
+主键 `(LexemeId, Ordinal)`；`Tag` ≤64。词元的受控标签，保序。
 
-### `inflection_forms` — 词形
+### `paradigm_cells` — 范式槽位（形态）
 
 | 列 | 类型 | 说明 |
 |---|---|---|
-| `Id` | TEXT PK | 稳定 `InflectionFormId`（形态掌握度、句子标注引用它，跨读写必须稳定） |
-| `LemmaId` | TEXT FK | 级联删除 |
-| `Ordinal` | INTEGER | 同词元内保序；原形永远在最前 |
-| `SurfaceKey` | TEXT，索引 | 表层文本语义键；原形词形的 SurfaceKey == LemmaKey |
-
-### `form_analyses` — 语法分析
-
-主键 `(FormId, Ordinal)`；`Case`/`Number`/`Person`/`Tense`/`Gender`/`Degree` 均为可空 TEXT（不适用即 NULL）。一个词形至少一行。
+| `Id` | TEXT PK | 稳定 Guid（由 concept+语言+lemma+范式+槽位确定性生成；形态掌握度、句子标注引用它，跨读写必须稳定） |
+| `LexemeId` | TEXT FK | 级联删除 |
+| `ParadigmKey` | TEXT，索引 | 范式名，如 `indicative_present`/`declension`（检索用） |
+| `SlotOrdinal` | INTEGER | 槽位序号；槽位顺序即人称/数或格/数的固定约定 |
+| `Surface` | TEXT | 表层形式文本（词汇表直接持有，不走 localized_texts） |
 
 ## Content 模块（`ContentDbContext`）
 
@@ -88,7 +97,7 @@
 
 ### `sentence_tokens` — 分词片段
 
-主键 `(SentenceId, LanguageCode, Ordinal)`；`Start`/`Length` 为 Unicode scalar 索引（零基），`Kind`（Word/Whitespace/Punctuation/NonLexicalSpeech），`InflectionFormId` NULL 或引用 `inflection_forms.Id`（逻辑外键）。片段按序、无重叠、完整覆盖全文（领域构造校验）。
+主键 `(SentenceId, LanguageCode, Ordinal)`；`Start`/`Length` 为 Unicode scalar 索引（零基），`Kind`（Word/Whitespace/Punctuation/NonLexicalSpeech），`FormCellId` NULL 或引用 `paradigm_cells.Id`（逻辑外键）。片段按序、无重叠、完整覆盖全文（领域构造校验）。
 
 ### `sentence_span_links` — 短语标注
 

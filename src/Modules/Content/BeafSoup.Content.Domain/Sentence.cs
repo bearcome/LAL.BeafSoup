@@ -8,16 +8,16 @@ public sealed record SentenceToken
     public int Start { get; }
     public int Length { get; }
     public SentenceTokenKind Kind { get; }
-    public Guid? InflectionFormId { get; }
+    public Guid? FormCellId { get; }
 
-    public SentenceToken(int start, int length, SentenceTokenKind kind, Guid? inflectionFormId = null)
+    public SentenceToken(int start, int length, SentenceTokenKind kind, Guid? formCellId = null)
     {
         if (start < 0 || length < 1)
             throw new DomainException(ContentErrorCodes.InvalidTokenRange, "分词起点必须非负且长度必须为正。");
         Start = start;
         Length = length;
         Kind = kind;
-        InflectionFormId = inflectionFormId;
+        FormCellId = formCellId;
     }
 
     public int End => Start + Length;

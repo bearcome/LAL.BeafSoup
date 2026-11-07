@@ -31,8 +31,6 @@ public sealed class LocalizationDbContext : DbContext
             b.Property(x => x.Key).HasMaxLength(128);
             b.Property(x => x.LanguageCode).HasMaxLength(20);
             b.Property(x => x.Text);
-            b.Property(x => x.LemmaKey).HasMaxLength(128);
-            b.HasIndex(x => x.LemmaKey);
         });
 
         modelBuilder.Entity<VoiceRoleConfigRow>(static b =>

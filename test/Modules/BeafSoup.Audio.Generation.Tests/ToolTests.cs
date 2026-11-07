@@ -1,4 +1,5 @@
 using BeafSoup.Audio.Generation.Tts;
+using BeafSoup.SharedKernel;
 using FluentAssertions;
 using Xunit;
 
@@ -41,12 +42,12 @@ public class SsmlBuilderTests
     }
 }
 
-public class StableIdTests
+public class StableGuidTests
 {
     [Fact]
     public void 同输入同Id_不同输入不同Id()
     {
-        StableId.For("word.coffee").Should().Be(StableId.For("word.coffee"));
-        StableId.For("word.coffee").Should().NotBe(StableId.For("word.tea"));
+        StableGuid.For("concept.coffee").Should().Be(StableGuid.For("concept.coffee"));
+        StableGuid.For("concept.coffee").Should().NotBe(StableGuid.For("concept.tea"));
     }
 }

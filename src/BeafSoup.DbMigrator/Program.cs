@@ -8,15 +8,15 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BeafSoup.DbMigrator;
 
-/// <summary>数据库迁移与种子填充工具（第 2 阶段）。命令：migrate / seed / reset。</summary>
+/// <summary>数据库迁移与种子填充工具（第 2 阶段）。命令：migrate / seed / reset / export-dictionary。</summary>
 public static class Program
 {
     public static async Task<int> Main(string[] args)
     {
         var command = args.FirstOrDefault(a => !a.StartsWith('-')) ?? "seed";
-        if (command is not ("migrate" or "seed" or "reset"))
+        if (command is not ("migrate" or "seed" or "reset" or "export-dictionary"))
         {
-            Console.Error.WriteLine($"未知命令 '{command}'（可用：migrate / seed / reset）。");
+            Console.Error.WriteLine($"未知命令 '{command}'（可用：migrate / seed / reset / export-dictionary）。");
             return 1;
         }
 
@@ -35,9 +35,14 @@ public static class Program
                 case "seed":
                     await DatabaseSeeder.SeedAsync(connectionString, seedDirectory, replaceExisting: force);
                     return 0;
-                default:
+                case "reset":
                     MigrationRunner.DeleteDatabaseFiles(connectionString);
                     await DatabaseSeeder.SeedAsync(connectionString, seedDirectory, replaceExisting: false);
+                    return 0;
+                default:
+                    var outputPath = ValueOf(args, "--output") ?? "dictionary.json";
+                    await DictionaryExporter.ExportAsync(connectionString, outputPath);
+                    Console.WriteLine($"概念词典已导出：{Path.GetFullPath(outputPath)}");
                     return 0;
             }
         }

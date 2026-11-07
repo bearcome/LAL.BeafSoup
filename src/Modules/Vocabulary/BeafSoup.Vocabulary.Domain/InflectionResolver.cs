@@ -3,10 +3,10 @@ using BeafSoup.SharedKernel;
 namespace BeafSoup.Vocabulary;
 
 /// <summary>候选词形条目：由应用层按语言规范化后的检索数据。</summary>
-public sealed record InflectionCandidate(Guid LemmaId, Guid FormId, string NormalizedSurface);
+public sealed record InflectionCandidate(Guid ConceptId, Guid CellId, string NormalizedSurface);
 
 /// <summary>形态解析命中。</summary>
-public sealed record InflectionMatch(Guid LemmaId, Guid FormId);
+public sealed record InflectionMatch(Guid ConceptId, Guid CellId);
 
 /// <summary>语言相关的表层形式规范化器；检索键按语言配置，不是全局唯一键。</summary>
 public interface ISurfaceFormNormalizer
@@ -28,6 +28,6 @@ public sealed class InflectionResolver
     public IReadOnlyList<InflectionMatch> Resolve(IReadOnlyList<InflectionCandidate> candidates, string normalizedSurface)
         => candidates
             .Where(c => c.NormalizedSurface == normalizedSurface)
-            .Select(c => new InflectionMatch(c.LemmaId, c.FormId))
+            .Select(c => new InflectionMatch(c.ConceptId, c.CellId))
             .ToArray();
 }

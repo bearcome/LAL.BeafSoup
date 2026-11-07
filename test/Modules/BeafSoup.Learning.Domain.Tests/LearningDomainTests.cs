@@ -31,13 +31,13 @@ public class LearnerProfileTests
 public class ReviewCardTests
 {
     [Fact]
-    public void 复习卡以词元为粒度_同配置同词元唯一()
+    public void 复习卡以概念为粒度_同配置同概念唯一()
     {
         var profileId = Guid.NewGuid();
-        var lemmaId = Guid.NewGuid();
-        var card1 = new ReviewCard(profileId, lemmaId);
-        var card2 = new ReviewCard(profileId, lemmaId);
-        card1.Should().Be(card2); // 唯一键 (ProfileId, LemmaId)
+        var conceptId = Guid.NewGuid();
+        var card1 = new ReviewCard(profileId, conceptId);
+        var card2 = new ReviewCard(profileId, conceptId);
+        card1.Should().Be(card2); // 唯一键 (ProfileId, ConceptId)
     }
 
     [Fact]

@@ -5,15 +5,15 @@
 ## 学习流程
 
 - 队列优先级：到期卡片优先（FSRS 到期时间），其后按每日新卡预算（可配置，默认 15 张）。
-- 卡片正面：单词音频（按 `audio-asset-spec.md` 单词音频）、变格形态提示或原型、词性。卡片背面：基础语言解释（`LocalizedText[key, 基础语言]`）、完整形态变化表、1–2 条例句（可点击进入句子视图）。
+- 卡片正面：单词音频（按 `audio-asset-spec.md` 单词音频，名词带冠词朗读）、变格形态提示或原型、词性。卡片背面：基础语言解释（概念词典 K-V 缓存中基础语言**主词元**的 lemma，如 `concept.drink` → `喝`）、完整形态变化表（目标语言主词元的全部范式槽位）、1–2 条例句（可点击进入句子视图）。
 - 评级按钮：`Again / Hard / Good / Easy`（映射 FSRS 评分 1–4）。
 
 ## 形态学覆盖（硬要求）
 
-- 每个词元携带**全部已出现的形态变化**（名词：4 格 × 2 数含冠词形式；动词：全变位表，含 Präteritum/Perfekt/Plusquamperfekt/Konjunktiv II/Imperativ；形容词：变格表；比较级；代词）。
-- FSRS 调度卡以**词元/词义**为单位，按（`LearnerProfileId` × `LemmaId`）唯一；词典原形和所有屈折形不重复生成卡片。各形态的作答掌握度另按（`LearnerProfileId` × `InflectionFormId`）记录。
-- 学习某个形态时，只有经过判分且明确关联到该形态的结果才更新其掌握度；该次有效复习同时用于所属词元卡的 FSRS 评级。单纯查看/点击形态不算一次复习。形态掌握 ≠ 词元掌握。
-- 反向卡片（释义 → 单词）在词元稳定性达到阈值后出现。
+- 每个词元携带**全部已出现的形态变化**（名词：`declension` 范式 4 格 × 2 数 8 槽位；动词：全变位表，含 Präteritum/Perfekt/Plusquamperfekt/Konjunktiv II/Imperativ；形容词：比较级等；代词）。范式名与槽位顺序约定见 `docs/domain/model.md` 与种子数据。
+- FSRS 调度卡以**概念（语义）**为单位，按（`LearnerProfileId` × `ConceptId`）唯一；同一概念下的多个词元与全部范式槽位不重复生成卡片。各范式槽位的作答掌握度另按（`LearnerProfileId` × `ParadigmCellId`）记录。
+- 学习某个形态时，只有经过判分且明确关联到该范式槽位（`ParadigmCellId`）的结果才更新其掌握度；该次有效复习同时用于所属概念卡的 FSRS 评级。单纯查看/点击形态不算一次复习。形态掌握 ≠ 概念掌握。
+- 反向卡片（释义 → 单词）在概念稳定性达到阈值后出现。
 
 ## 智能调度
 

@@ -49,6 +49,6 @@ LAL.BeafSoup.sln
 ## 第 2 阶段实际落地（2026-11）
 
 - 按 ADR-005 创建 Localization/Vocabulary/Content 的 `EntityFrameworkCore` 项目：每模块独立 `DbContext` 与迁移（独立迁移历史表），共享一个 SQLite 数据库文件；持久化行 + 显式映射器（`{Module}PersistenceMapper`），不直接把领域对象交给 EF 物化。
-- 领域侧仅为持久化还原增加两个工厂（`LocalizedText.Restore`、`InflectionForm.Restore`/`Lemma.RestoreForm`），保证 `InflectionFormId` 跨读写稳定。
-- 另建 `src/BeafSoup.DbMigrator` 控制台（migrate / seed / reset）与三个持久化测试项目、`test/BeafSoup.DbMigrator.Tests`。
+- 领域侧仅为持久化还原增加恢复工厂（`LocalizedText.Restore`、`LexicalConcept.Restore`、`Lexeme.Restore`），并由调用方按领域规则确定性生成概念/词元/范式槽位 Id，保证 `ParadigmCellId` 跨读写稳定。
+- 另建 `src/BeafSoup.DbMigrator` 控制台（migrate / seed / reset / export-dictionary）与三个持久化测试项目、`test/BeafSoup.DbMigrator.Tests`。
 - 已知坑：本仓库 .NET 11 RC SDK 的 `dotnet sln add` 对 `.slnx` 会误写条目，新增项目需手工编辑 `.slnx`。

@@ -22,8 +22,8 @@ public static class AudioPathBuilder
 
     private static string WordFileName(AudioAsset asset, string token)
     {
-        // 词内空格转连字符；变音符号（ä/ö/ü/ß）原样保留
-        var lemma = asset.LemmaText!.Replace(' ', '-');
+        // 词内空格与短语词间 '_' 均转连字符；变音符号（ä/ö/ü/ß）原样保留
+        var lemma = asset.LemmaText!.Replace(' ', '-').Replace('_', '-');
         return asset.Article is null ? $"{lemma}-{token}" : $"{asset.Article}-{lemma}-{token}";
     }
 

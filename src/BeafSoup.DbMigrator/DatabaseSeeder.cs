@@ -41,9 +41,8 @@ public static class DatabaseSeeder
         await using (var context = new LocalizationDbContext(
             MigrationRunner.CreateOptions<LocalizationDbContext>(connectionString, "__EFMigrationsHistory_Localization")))
         {
-            var vocabularyKeys = validated.Lemmas
-                .SelectMany(l => new[] { l.LemmaKey }.Concat(l.Forms.Select(f => f.SurfaceKey)))
-                .Distinct();
+            // 概念键注册为语义键，但词汇域不维护 localized_texts——概念解释走词典 K-V 缓存中的基础语言主词元
+            var vocabularyKeys = validated.Concepts.Select(c => c.ConceptKey).Distinct();
             var contentKeys = validated.Sentences.Select(s => s.Key)
                 .Concat(validated.Courses.Select(c => c.TitleKey))
                 .Concat(validated.Courses.SelectMany(c => c.Units.Select(u => u.TitleKey)))
@@ -58,11 +57,11 @@ public static class DatabaseSeeder
             await context.SaveChangesAsync();
         }
 
-        // 2) 词汇：词元（级联词形/语法分析/标签）
+        // 2) 词汇：概念（级联词元/标签/范式槽位）
         await using (var context = new VocabularyDbContext(
             MigrationRunner.CreateOptions<VocabularyDbContext>(connectionString, "__EFMigrationsHistory_Vocabulary")))
         {
-            context.Lemmas.AddRange(validated.Lemmas.Select(VocabularyPersistenceMapper.ToRow));
+            context.LexicalConcepts.AddRange(validated.Concepts.Select(VocabularyPersistenceMapper.ToRow));
             await context.SaveChangesAsync();
         }
 
@@ -76,7 +75,7 @@ public static class DatabaseSeeder
             await context.SaveChangesAsync();
         }
 
-        Console.WriteLine($"种子填充完成：词元 {validated.Lemmas.Count}，句子 {validated.Sentences.Count}，" +
+        Console.WriteLine($"种子填充完成：概念 {validated.Concepts.Count}，句子 {validated.Sentences.Count}，" +
             $"对话 {validated.Dialogues.Count}，课程 {validated.Courses.Count}，本地化文本 {validated.LocalizedTexts.Count}。");
     }
 
@@ -88,7 +87,7 @@ public static class DatabaseSeeder
             "lesson_exercises", "lessons", "skill_units", "courses",
             "essay_sentences", "essays", "dialogue_lines", "dialogues", "sentence_span_links",
             "sentence_tokens", "sentence_tokenizations", "sentences",
-            "form_analyses", "inflection_forms", "lemma_tags", "lemmas",
+            "paradigm_cells", "lexeme_tags", "lexemes", "lexical_concepts",
             "voice_role_configs", "localized_texts", "semantic_keys",
         ];
         await using var connection = new SqliteConnection(connectionString);

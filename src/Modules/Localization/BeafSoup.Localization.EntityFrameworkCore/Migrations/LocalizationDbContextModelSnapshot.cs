@@ -27,10 +27,6 @@ namespace BeafSoup.Localization.EntityFrameworkCore.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("LemmaKey")
-                        .HasMaxLength(128)
-                        .HasColumnType("TEXT");
-
                     b.Property<int>("Revision")
                         .HasColumnType("INTEGER");
 
@@ -39,8 +35,6 @@ namespace BeafSoup.Localization.EntityFrameworkCore.Migrations
                         .HasColumnType("TEXT");
 
                     b.HasKey("Key", "LanguageCode");
-
-                    b.HasIndex("LemmaKey");
 
                     b.ToTable("localized_texts", (string)null);
                 });

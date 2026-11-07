@@ -18,7 +18,7 @@
 | 前端 | Blazor WebAssembly，**独立部署**（不依赖服务端托管，纯静态文件） |
 | 语言/框架 | C# / .NET 11（Latest 版本），启用可空引用类型 |
 | 架构 | DDD 领域驱动、模块化单体，模式参考 ABP vNext（领域服务、仓储抽象、规约模式、模块插件） |
-| 数据 | "语义键 + 语言代号"设计（见 `docs/domain/localization-data-design.md`）；账户与学习状态由 API 服务端权威持久化，权威数据库为 SQLite（见 ADR-005） |
+| 数据 | "语义键 + 语言代号"设计（见 `docs/domain/localization-data-design.md`）；词汇按跨语言概念组织（`concept.*`，一个语义对应多词元），客户端经概念词典 K-V 缓存按页面取词；账户与学习状态由 API 服务端权威持久化，权威数据库为 SQLite（见 ADR-005） |
 | 音频 | Azure TTS（免费额度预算）；音频为预生成的静态文件（见 `docs/domain/audio-asset-spec.md`） |
 | 样式 | CSS 自定义属性实现亮/暗主题，响应式布局（见 `docs/features/ui-theming-responsive.md`） |
 

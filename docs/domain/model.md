@@ -21,15 +21,16 @@
 
 ## 词汇模块（Vocabulary）
 
-- **`Lemma`**（聚合根）：一种特定语言中的词典词义/词元，如德语 `Kaffee`。包含 `LanguageCode`、词形语义键、词性、名词冠词、CEFR 等级及受控标签；基础语言解释是同一语义键的本地化版本，不在 `Lemma` 上单独存文本或 URL。不同词义或同形异义词使用不同 `LemmaId`。
-- **`InflectionForm`**（`Lemma` 下实体）：该词元的一个表层形式，包括词典原形本身；关联表层文本语义键及一个或多个语法分析（格、数、时态、人称等）。
-- **匹配规则**：规范化表层形式是按语言配置的检索键，不是全局唯一键；检索可返回多个 `Lemma`/`InflectionForm` 候选。句子标注保存人工或上下文消歧后的目标。不能仅凭表层字符串强制唯一归属。
-- **学习标识**：每个可复习词形都有稳定 `InflectionFormId`；词元原形也建模为一个 `InflectionForm`，避免同一原形同时生成词元卡和形态卡。
+- **`LexicalConcept`**（聚合根）：一个语义单元（单词或短语），**跨语言只存一份**，用 `ConceptKey`（`SemanticKey`，命名空间 `concept.*`）标识。包含 concept 级词性、种类（`Word`/`Phrase`）及各语言的 `Lexeme` 集合。一个语义可对应多个词汇（同义/语体差异），如 `concept.drink` 下德语有 `trinken`（主）、`zechen`（高雅语体），中文有 `喝`（主）、`饮`（书面）。
+- **`Lexeme`**（`LexicalConcept` 下实体，每语言 0..n 个）：`Lemma`（原形检索词；短语的词与词用 `_` 连接，如 `guten_Tag`，与单词区分；无语间边界的书写系统如中文可不使用）、`DisplayWord`（展示文本，名词含冠词如 `der Kaffee`，缺省等于 `Lemma`）、`IsPrimary`（每个 `(concept, language)` 恰有一个主词元）、语体（`Register`）、名词冠词、CEFR 等级及受控标签。**词汇表不存任何注释语言的解释内容**——解释就是基础语言的主词元 `Lemma`（数据经由概念词典 K-V 缓存提供，见 `localization-data-design.md`）。
+- **`ParadigmCell`**（`Lexeme` 下实体）：`ParadigmKey`（范式名，如 `indicative_present`，槽位顺序即人称/数或格/数的固定约定）+ `SlotOrdinal` + `Surface`（表层形式）。`Id` 由 `(conceptKey, language, lemma, paradigmKey, slot)` 确定性生成，**跨读写稳定**——形态掌握度与句子标注引用它。词典原形本身即 `Lemma`，不再建模为词形，避免词元卡与形态卡重复。
+- **匹配规则**：规范化表层形式是按语言配置的检索键，不是全局唯一键；检索可返回多个 `LexicalConcept`/`ParadigmCell` 候选。句子标注保存人工或上下文消歧后的目标。不能仅凭表层字符串强制唯一归属。
+- **学习标识**：可复习单位是概念（`ConceptId`）；每个范式槽位有稳定 `ParadigmCellId`。
 
 ## 内容模块（Content）
 
 - **`Course` → `SkillUnit`（技能树节点）→ `Lesson`**（需求 1）；学习者进度不写回课程定义。
-- **`Sentence`**（实体）：引用句子 `SemanticKey`；本地化全文只存于 `LocalizedText`。每种语言独立拥有带文本修订号的 `SentenceTokenization`。每个 `SentenceToken` 以零基 Unicode scalar 起点/长度索引全文，不复制原文；词、空白、标点和非词汇发音片段按序无重叠且完整覆盖全文。词元可无词汇链接，或链接一个已消歧的 `InflectionFormId`。
+- **`Sentence`**（实体）：引用句子 `SemanticKey`；本地化全文只存于 `LocalizedText`。每种语言独立拥有带文本修订号的 `SentenceTokenization`。每个 `SentenceToken` 以零基 Unicode scalar 起点/长度索引全文，不复制原文；词、空白、标点和非词汇发音片段按序无重叠且完整覆盖全文。词元可无词汇链接，或链接一个已消歧的 `ParadigmCellId`。
 - **短语标注**：`SentenceSpanLink { sentenceId, languageCode, startTokenIndex, tokenCount, lexicalEntryRef }` 表达跨词元短语；允许词元级与短语级链接重叠。索引绑定语言和 `LocalizedText` 修订号，仅适用于该版本；全文变更时旧标注失效，必须重新校验或生成。
 - **`Dialogue`**（实体）：有序 `DialogueLine { speakerLabel（仅展示）, sentenceId, voiceRole }` 列表；说话人标签永不进入 TTS 输入。每行的音频文本来自对应语言版本。
 - **`Essay`**（短文）：有序 `sentenceId` 列表；音频由句子资产拼接，不生成独立 TTS 文件。
@@ -47,8 +48,8 @@
 ## 学习模块（Learning）
 
 - **`LearnerProfile`**（聚合）：属于一个 `UserId`，包含基础语言、目标语言、目标记忆率和主题偏好；同一账户可拥有多个语言学习配置，配置 ID 稳定且不可跨账户访问。
-- **`ReviewCard`**（实体）：以（`LearnerProfileId`, `LemmaId`）为唯一键；保存 FSRS 状态与调度版本。该卡的学习单位是词元，不为每个屈折形式重复创建调度卡。
-- **`FormMastery`**（实体/投影）：以（`LearnerProfileId`, `InflectionFormId`）为键，单独记录各形态的作答表现。可明确关联词形的练习更新其掌握度，并同时将结果用于所属词元的 SRS 评级；泛理解题不推断词形掌握度。
+- **`ReviewCard`**（实体）：以（`LearnerProfileId`, `ConceptId`）为唯一键；保存 FSRS 状态与调度版本。该卡的学习单位是概念（语义），同一概念下的所有词元与形态不重复创建调度卡。
+- **`FormMastery`**（实体/投影）：以（`LearnerProfileId`, `ParadigmCellId`）为键，单独记录各范式槽位的作答表现。可明确关联词形的练习更新其掌握度，并同时将结果用于所属概念的 SRS 评级；泛理解题不推断词形掌握度。
 - **`LearningActivity`**（不可变事实）：记录已判分作答、复习及课时完成等学习行为，含账户/学习配置 ID、稳定事件 ID、UTC 时间和必要的题目关联；去重键保证重试不会重复计分。
 - **`ProgressRecord`**（只读投影）：按 `LearnerProfileId` 汇总经验值、连胜、红心/体力及单元完成度；唯一事实来源是已接受且去重的学习活动，不作为独立写入的聚合，也不能跨用户共享。
 

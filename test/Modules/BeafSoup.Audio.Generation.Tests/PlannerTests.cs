@@ -17,13 +17,18 @@ public class AudioAssetPlannerTests
                 new() { Language = "de-DE", Role = "Female", AssetFileToken = "Mia", TtsVoiceName = "de-DE-KatjaNeural" },
                 new() { Language = "de-DE", Role = "Child", AssetFileToken = "Lars", TtsVoiceName = "de-DE-KasperNeural" },
             ],
-            Lemmas =
+            Concepts =
             [
                 new()
                 {
-                    Key = "word.coffee", Language = "de-DE", PartOfSpeech = "Noun", Article = "Der", Cefr = "A1",
-                    Translations = new() { ["de-DE"] = "Kaffee" },
-                    Forms = [new() { Key = "word.coffee", Surface = "Kaffee", Analyses = [new()] }],
+                    Key = "concept.coffee", PartOfSpeech = "Noun", Kind = "Word",
+                    Lexemes = new()
+                    {
+                        ["de-DE"] =
+                        [
+                            new() { Lemma = "Kaffee", Display = "der Kaffee", IsPrimary = true, Register = "Neutral", Article = "Der", Cefr = "A1" },
+                        ],
+                    },
                 },
             ],
             Sentences =
@@ -55,7 +60,7 @@ public class AudioAssetPlannerTests
     }
 
     [Fact]
-    public void 每个单词与句子按三角色生成_路径符合命名规范()
+    public void 每个词元与句子按三角色生成_路径符合命名规范()
     {
         var options = new ToolOptions
         {
@@ -69,7 +74,7 @@ public class AudioAssetPlannerTests
         plan.Should().Contain(p => p.RelativePath == "de-DE/der-Kaffee-Max.mp3");
         plan.Should().Contain(p => p.RelativePath == "de-DE/der-Kaffee-Mia.mp3");
         plan.Should().Contain(p => p.RelativePath == "de-DE/s-000001-Lars.mp3");
-        plan.Should().HaveCount(6); // 1 词 × 3 角色 + 1 句 × 3 角色；对话行 Male 组合去重
+        plan.Should().HaveCount(6); // 1 词元 × 3 角色 + 1 句 × 3 角色；对话行 Male 组合去重
     }
 
     [Fact]
@@ -83,19 +88,23 @@ public class AudioAssetPlannerTests
                 new() { Language = "de-DE", Role = "Female", AssetFileToken = "Mia", TtsVoiceName = "de-DE-KatjaNeural" },
                 new() { Language = "de-DE", Role = "Child", AssetFileToken = "Lars", TtsVoiceName = "de-DE-KasperNeural" },
             ],
-            Lemmas =
+            Concepts =
             [
                 new()
                 {
-                    Key = "word.coffee", Language = "de-DE", PartOfSpeech = "Noun", Article = "Der", Cefr = "A1",
-                    Translations = new() { ["de-DE"] = "Kaffee" },
-                    Forms = [new() { Key = "word.coffee", Surface = "Kaffee", Analyses = [new()] }],
+                    Key = "concept.coffee", PartOfSpeech = "Noun", Kind = "Word",
+                    Lexemes = new()
+                    {
+                        ["de-DE"] = [new() { Lemma = "Kaffee", IsPrimary = true, Register = "Neutral", Article = "Der", Cefr = "A1" }],
+                    },
                 },
                 new()
                 {
-                    Key = "verb.drink", Language = "de-DE", PartOfSpeech = "Verb", Article = null, Cefr = "A1",
-                    Translations = new() { ["de-DE"] = "trinken" },
-                    Forms = [new() { Key = "verb.drink", Surface = "trinken", Analyses = [new()] }],
+                    Key = "concept.drink", PartOfSpeech = "Verb", Kind = "Word",
+                    Lexemes = new()
+                    {
+                        ["de-DE"] = [new() { Lemma = "trinken", IsPrimary = true, Register = "Neutral", Cefr = "A1" }],
+                    },
                 },
             ],
         };
@@ -105,10 +114,46 @@ public class AudioAssetPlannerTests
 
         var plan = AudioAssetPlanner.Plan(result.Value!, options);
 
-        plan.Where(p => p.SourceKind == "word" && p.SourceKey == "word.coffee")
+        var coffeeKey = result.Value!.Concepts.Single(c => c.ConceptKey.Value == "concept.coffee").Lexemes.Single().Id.ToString();
+        var drinkKey = result.Value!.Concepts.Single(c => c.ConceptKey.Value == "concept.drink").Lexemes.Single().Id.ToString();
+        plan.Where(p => p.SourceKind == "word" && p.SourceKey == coffeeKey)
             .Should().OnlyContain(p => p.TtsText == "der Kaffee");
-        plan.Where(p => p.SourceKind == "word" && p.SourceKey == "verb.drink")
+        plan.Where(p => p.SourceKind == "word" && p.SourceKey == drinkKey)
             .Should().OnlyContain(p => p.TtsText == "trinken");
+    }
+
+    [Fact]
+    public void 短语音频_TTS还原空格_文件名转连字符()
+    {
+        var seed = new SeedData
+        {
+            VoiceRoles =
+            [
+                new() { Language = "de-DE", Role = "Male", AssetFileToken = "Max", TtsVoiceName = "de-DE-ConradNeural" },
+                new() { Language = "de-DE", Role = "Female", AssetFileToken = "Mia", TtsVoiceName = "de-DE-KatjaNeural" },
+                new() { Language = "de-DE", Role = "Child", AssetFileToken = "Lars", TtsVoiceName = "de-DE-KasperNeural" },
+            ],
+            Concepts =
+            [
+                new()
+                {
+                    Key = "concept.guten.tag", PartOfSpeech = "Other", Kind = "Phrase",
+                    Lexemes = new()
+                    {
+                        ["de-DE"] = [new() { Lemma = "guten_Tag", IsPrimary = true, Register = "Neutral", Cefr = "A1" }],
+                    },
+                },
+            ],
+        };
+        var result = SeedValidator.Validate(seed);
+        result.IsValid.Should().BeTrue(string.Join(";", result.Errors));
+        var options = new ToolOptions { SeedDirectory = "", OutputDirectory = "", CefrRates = [], RoleProsody = [] };
+
+        var plan = AudioAssetPlanner.Plan(result.Value!, options);
+
+        plan.Should().OnlyContain(p => p.RelativePath == "de-DE/guten-Tag-Max.mp3"
+            || p.RelativePath == "de-DE/guten-Tag-Mia.mp3" || p.RelativePath == "de-DE/guten-Tag-Lars.mp3");
+        plan.Should().OnlyContain(p => p.TtsText == "guten Tag");
     }
 
     [Fact]

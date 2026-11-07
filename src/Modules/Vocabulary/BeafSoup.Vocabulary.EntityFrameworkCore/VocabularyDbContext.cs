@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BeafSoup.Vocabulary.EntityFrameworkCore;
 
-/// <summary>词汇模块持久化上下文：词元、词形与语法分析。与其他模块共享同一 SQLite 数据库文件，迁移历史表独立（见 ADR-005）。</summary>
+/// <summary>词汇模块持久化上下文：概念、词元与范式槽位。与其他模块共享同一 SQLite 数据库文件，迁移历史表独立（见 ADR-005）。</summary>
 public sealed class VocabularyDbContext : DbContext
 {
     public VocabularyDbContext(DbContextOptions<VocabularyDbContext> options)
@@ -10,56 +10,56 @@ public sealed class VocabularyDbContext : DbContext
     {
     }
 
-    public DbSet<LemmaRow> Lemmas => Set<LemmaRow>();
-    public DbSet<LemmaTagRow> LemmaTags => Set<LemmaTagRow>();
-    public DbSet<InflectionFormRow> InflectionForms => Set<InflectionFormRow>();
-    public DbSet<FormAnalysisRow> FormAnalyses => Set<FormAnalysisRow>();
+    public DbSet<LexicalConceptRow> LexicalConcepts => Set<LexicalConceptRow>();
+    public DbSet<LexemeRow> Lexemes => Set<LexemeRow>();
+    public DbSet<LexemeTagRow> LexemeTags => Set<LexemeTagRow>();
+    public DbSet<ParadigmCellRow> ParadigmCells => Set<ParadigmCellRow>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<LemmaRow>(static b =>
+        modelBuilder.Entity<LexicalConceptRow>(static b =>
         {
-            b.ToTable("lemmas");
+            b.ToTable("lexical_concepts");
             b.HasKey(x => x.Id);
-            b.Property(x => x.LanguageCode).HasMaxLength(20);
-            b.Property(x => x.LemmaKey).HasMaxLength(128);
+            b.Property(x => x.ConceptKey).HasMaxLength(128);
             b.Property(x => x.PartOfSpeech).HasMaxLength(16);
-            b.Property(x => x.Article).HasMaxLength(8);
-            b.Property(x => x.Cefr).HasMaxLength(4);
-            b.HasIndex(x => x.LemmaKey).IsUnique();
-            b.HasMany(x => x.Tags).WithOne().HasForeignKey(t => t.LemmaId).OnDelete(DeleteBehavior.Cascade);
-            b.HasMany(x => x.Forms).WithOne().HasForeignKey(f => f.LemmaId).OnDelete(DeleteBehavior.Cascade);
-            b.Navigation(x => x.Tags).AutoInclude();
-            b.Navigation(x => x.Forms).AutoInclude();
+            b.Property(x => x.Kind).HasMaxLength(8);
+            b.HasIndex(x => x.ConceptKey).IsUnique();
+            b.HasMany(x => x.Lexemes).WithOne().HasForeignKey(l => l.ConceptId).OnDelete(DeleteBehavior.Cascade);
+            b.Navigation(x => x.Lexemes).AutoInclude();
         });
 
-        modelBuilder.Entity<LemmaTagRow>(static b =>
+        modelBuilder.Entity<LexemeRow>(static b =>
         {
-            b.ToTable("lemma_tags");
-            b.HasKey(x => new { x.LemmaId, x.Ordinal });
+            b.ToTable("lexemes");
+            b.HasKey(x => x.Id);
+            b.Property(x => x.LanguageCode).HasMaxLength(20);
+            b.Property(x => x.Lemma).HasMaxLength(128);
+            b.Property(x => x.DisplayWord).HasMaxLength(128);
+            b.Property(x => x.Register).HasMaxLength(16);
+            b.Property(x => x.Article).HasMaxLength(8);
+            b.Property(x => x.Cefr).HasMaxLength(4);
+            b.HasIndex(x => new { x.ConceptId, x.LanguageCode, x.Ordinal }).IsUnique();
+            b.HasMany(x => x.Tags).WithOne().HasForeignKey(t => t.LexemeId).OnDelete(DeleteBehavior.Cascade);
+            b.HasMany(x => x.Cells).WithOne().HasForeignKey(c => c.LexemeId).OnDelete(DeleteBehavior.Cascade);
+            b.Navigation(x => x.Tags).AutoInclude();
+            b.Navigation(x => x.Cells).AutoInclude();
+        });
+
+        modelBuilder.Entity<LexemeTagRow>(static b =>
+        {
+            b.ToTable("lexeme_tags");
+            b.HasKey(x => new { x.LexemeId, x.Ordinal });
             b.Property(x => x.Tag).HasMaxLength(64);
         });
 
-        modelBuilder.Entity<InflectionFormRow>(static b =>
+        modelBuilder.Entity<ParadigmCellRow>(static b =>
         {
-            b.ToTable("inflection_forms");
+            b.ToTable("paradigm_cells");
             b.HasKey(x => x.Id);
-            b.Property(x => x.SurfaceKey).HasMaxLength(128);
-            b.HasIndex(x => x.SurfaceKey);
-            b.HasMany(x => x.Analyses).WithOne().HasForeignKey(a => a.FormId).OnDelete(DeleteBehavior.Cascade);
-            b.Navigation(x => x.Analyses).AutoInclude();
-        });
-
-        modelBuilder.Entity<FormAnalysisRow>(static b =>
-        {
-            b.ToTable("form_analyses");
-            b.HasKey(x => new { x.FormId, x.Ordinal });
-            b.Property(x => x.Case).HasMaxLength(16);
-            b.Property(x => x.Number).HasMaxLength(16);
-            b.Property(x => x.Person).HasMaxLength(16);
-            b.Property(x => x.Tense).HasMaxLength(16);
-            b.Property(x => x.Gender).HasMaxLength(16);
-            b.Property(x => x.Degree).HasMaxLength(16);
+            b.Property(x => x.ParadigmKey).HasMaxLength(64);
+            b.HasIndex(x => x.ParadigmKey);
+            b.Property(x => x.Surface).HasMaxLength(128);
         });
     }
 }

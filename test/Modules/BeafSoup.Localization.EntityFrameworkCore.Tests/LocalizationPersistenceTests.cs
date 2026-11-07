@@ -39,16 +39,15 @@ public sealed class TempLocalizationDatabase : IAsyncDisposable
 public class LocalizationPersistenceTests
 {
     [Fact]
-    public async Task 本地化文本按键与语言存储_修订号与词元键往返一致()
+    public async Task 本地化文本按键与语言存储_修订号往返一致()
     {
         await using var database = new TempLocalizationDatabase();
         var text = LocalizedText.Restore(
-            SemanticKey.Of("word.coffee"), LanguageCode.Of("de-DE"), "Kaffee", 3,
-            lemmaKey: null);
+            SemanticKey.Of("sentence.greeting.001"), LanguageCode.Of("de-DE"), "Guten Tag!", 3);
 
         await using (var context = await database.CreateAndMigrateAsync())
         {
-            context.SemanticKeys.Add(LocalizationPersistenceMapper.ToRow(SemanticKey.Of("word.coffee"), "vocabulary", DateTime.UtcNow));
+            context.SemanticKeys.Add(LocalizationPersistenceMapper.ToRow(SemanticKey.Of("sentence.greeting.001"), "content", DateTime.UtcNow));
             context.LocalizedTexts.Add(LocalizationPersistenceMapper.ToRow(text));
             await context.SaveChangesAsync();
         }

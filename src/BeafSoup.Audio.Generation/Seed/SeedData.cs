@@ -1,10 +1,10 @@
 namespace BeafSoup.Audio.Generation.Seed;
 
-/// <summary>种子数据聚合：voices/lemmas/sentences/dialogues/courses 五个 JSON 文件的反序列化目标。</summary>
+/// <summary>种子数据聚合：voices/concepts/sentences/dialogues/courses 五个 JSON 文件的反序列化目标。</summary>
 public sealed class SeedData
 {
     public List<SeedVoiceRole> VoiceRoles { get; set; } = [];
-    public List<SeedLemma> Lemmas { get; set; } = [];
+    public List<SeedConcept> Concepts { get; set; } = [];
     public List<SeedSentence> Sentences { get; set; } = [];
     public List<SeedDialogue> Dialogues { get; set; } = [];
     public List<SeedCourse> Courses { get; set; } = [];
@@ -18,33 +18,26 @@ public sealed class SeedVoiceRole
     public string TtsVoiceName { get; set; } = "";
 }
 
-public sealed class SeedLemma
+/// <summary>概念：一个语义单元（单词/短语）的跨语言词条集合；键命名空间 concept.*。</summary>
+public sealed class SeedConcept
 {
     public string Key { get; set; } = "";
-    public string Language { get; set; } = "";
     public string PartOfSpeech { get; set; } = "";
+    public string Kind { get; set; } = "Word";
+    public Dictionary<string, List<SeedLexeme>> Lexemes { get; set; } = [];
+}
+
+/// <summary>词元：某概念在一种语言中的一个词典词（含同义/语体变体）。forms 为 范式名 → 槽位表层形式列表（槽位顺序即人称/数或格/数约定）。</summary>
+public sealed class SeedLexeme
+{
+    public string Lemma { get; set; } = "";
+    public string? Display { get; set; }
+    public bool IsPrimary { get; set; }
+    public string Register { get; set; } = "Neutral";
     public string? Article { get; set; }
     public string Cefr { get; set; } = "A1";
     public List<string> Tags { get; set; } = [];
-    public Dictionary<string, string> Translations { get; set; } = [];
-    public List<SeedInflectionForm> Forms { get; set; } = [];
-}
-
-public sealed class SeedInflectionForm
-{
-    public string Key { get; set; } = "";
-    public string Surface { get; set; } = "";
-    public List<SeedAnalysis> Analyses { get; set; } = [];
-}
-
-public sealed class SeedAnalysis
-{
-    public string? Case { get; set; }
-    public string? Number { get; set; }
-    public string? Person { get; set; }
-    public string? Tense { get; set; }
-    public string? Gender { get; set; }
-    public string? Degree { get; set; }
+    public Dictionary<string, List<string>> Forms { get; set; } = [];
 }
 
 public sealed class SeedSentence
@@ -69,7 +62,9 @@ public sealed class SeedToken
     public int Start { get; set; }
     public int Length { get; set; }
     public string Kind { get; set; } = "";
-    public string? FormLemmaKey { get; set; }
+
+    /// <summary>词形链接：概念键 + 表层形式，须在 concepts.json 中命中某个范式槽位。</summary>
+    public string? ConceptKey { get; set; }
     public string? FormSurface { get; set; }
 }
 

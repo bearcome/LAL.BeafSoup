@@ -1,3 +1,4 @@
+using System.Text.Json;
 using BeafSoup.Content.EntityFrameworkCore;
 using BeafSoup.Localization.EntityFrameworkCore;
 using BeafSoup.Vocabulary.EntityFrameworkCore;
@@ -56,9 +57,11 @@ public class SeedPipelineTests : IAsyncLifetime
         await using (var context = new VocabularyDbContext(
             MigrationRunner.CreateOptions<VocabularyDbContext>(ConnectionString, "__EFMigrationsHistory_Vocabulary")))
         {
-            var lemmas = await context.Lemmas.ToListAsync();
-            lemmas.Should().HaveCount(3); // 种子：每种数据 3 条
-            lemmas.Select(VocabularyPersistenceMapper.ToDomain).Should().OnlyContain(l => l.Forms.Count >= 1);
+            var concepts = await context.LexicalConcepts.ToListAsync();
+            concepts.Should().HaveCount(4); // 种子：3 个单词概念 + 1 个短语概念
+            concepts.SelectMany(c => c.Lexemes).Should().HaveCount(10); // 含各语言同义/语体变体
+            concepts.Select(VocabularyPersistenceMapper.ToDomain).Should().HaveCount(4); // 还原即校验主词元不变量
+            (await context.ParadigmCells.CountAsync()).Should().BeGreaterThan(0);
         }
 
         await using (var context = new ContentDbContext(
@@ -86,5 +89,33 @@ public class SeedPipelineTests : IAsyncLifetime
             .Where(g => g.Count() > 1)
             .CountAsync();
         duplicateKeys.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task 概念词典导出_语义id键_含各语言词元与范式槽位()
+    {
+        await DatabaseSeeder.SeedAsync(ConnectionString, LocateSeedDirectory(), replaceExisting: false);
+        var outputPath = Path.Combine(_directory, "dictionary.json");
+
+        await DictionaryExporter.ExportAsync(ConnectionString, outputPath);
+
+        var json = JsonDocument.Parse(await File.ReadAllTextAsync(outputPath));
+        var drink = json.RootElement.GetProperty("concept.drink");
+        drink.GetProperty("pos").GetString().Should().Be("Verb");
+        var zhLexemes = drink.GetProperty("zh-CN").GetProperty("lexemes");
+        zhLexemes.EnumerateArray().Single(l => l.GetProperty("lemma").GetString() == "喝")
+            .GetProperty("isPrimary").GetBoolean().Should().BeTrue();
+        var present = drink.GetProperty("de-DE").GetProperty("lexemes").EnumerateArray()
+            .Single(l => l.GetProperty("lemma").GetString() == "trinken")
+            .GetProperty("forms").GetProperty("indicative_present");
+        present.EnumerateArray().Select(v => v.GetString()).Should().Equal(
+            "trinke", "trinkst", "trinkt", "trinken", "trinkt", "trinken");
+        // 去冗余：displayWord 与 lemma 相同时省略
+        json.RootElement.GetProperty("concept.drink").GetProperty("de-DE").GetProperty("lexemes").EnumerateArray()
+            .Single(l => l.GetProperty("lemma").GetString() == "trinken")
+            .TryGetProperty("displayWord", out _).Should().BeFalse();
+        // 名词展示词含冠词
+        json.RootElement.GetProperty("concept.coffee").GetProperty("de-DE").GetProperty("lexemes").EnumerateArray()
+            .Single().GetProperty("displayWord").GetString().Should().Be("der Kaffee");
     }
 }

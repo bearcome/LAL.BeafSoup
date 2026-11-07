@@ -19,7 +19,7 @@ try
 
     if (cli.Command == "validate")
     {
-        Console.WriteLine($"种子校验通过：词元 {validated.Lemmas.Count}，句子 {validated.Sentences.Count}，对话 {validated.Dialogues.Count}，课程 {validated.Courses.Count}，音色配置 {validated.VoiceRoles.Count}，本地化文本 {validated.LocalizedTexts.Count}。");
+        Console.WriteLine($"种子校验通过：概念 {validated.Concepts.Count}，句子 {validated.Sentences.Count}，对话 {validated.Dialogues.Count}，课程 {validated.Courses.Count}，音色配置 {validated.VoiceRoles.Count}，本地化文本 {validated.LocalizedTexts.Count}。");
         return 0;
     }
 
@@ -35,7 +35,9 @@ try
     var secretsPath = cli.SecretsPath ?? Path.GetFullPath("../../../../../secret.json", AppContext.BaseDirectory);
     var azure = AzureTtsOptions.Load(secretsPath);
     var ssmlBuilder = new SsmlBuilder();
-    var cefrByLemma = validated.Lemmas.ToDictionary(l => l.LemmaKey.Value, l => l.Cefr.ToString());
+    var cefrByLexeme = validated.Concepts
+        .SelectMany(c => c.Lexemes)
+        .ToDictionary(l => l.Id.ToString(), l => l.Cefr.ToString());
     var written = new List<string>();
     var synthesizer = new AzureAudioSynthesizer(azure);
 
@@ -48,7 +50,7 @@ try
             written.Add(asset.RelativePath);
             continue;
         }
-        var rate = asset.SourceKind == "word" && cefrByLemma.TryGetValue(asset.SourceKey, out var cefr)
+        var rate = asset.SourceKind == "word" && cefrByLexeme.TryGetValue(asset.SourceKey, out var cefr)
             ? options.CefrRates.GetValueOrDefault(cefr)
             : null;
         var pitch = options.RoleProsody.GetValueOrDefault(asset.AssetFileToken)?.Pitch;

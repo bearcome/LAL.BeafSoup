@@ -9,7 +9,6 @@ public sealed class LocalizedTextRow
     public string LanguageCode { get; set; } = "";
     public string Text { get; set; } = "";
     public int Revision { get; set; }
-    public string? LemmaKey { get; set; }
 }
 
 /// <summary>音色角色配置行：角色 → 稳定文件名片段 + Azure 语音名，主键 (language_code, role)。</summary>
@@ -34,7 +33,6 @@ public static class LocalizationPersistenceMapper
             LanguageCode = text.Language.Value,
             Text = text.Text,
             Revision = text.Revision,
-            LemmaKey = text.LemmaKey?.Value,
         };
 
     public static LocalizedText ToDomain(LocalizedTextRow row)
@@ -42,8 +40,7 @@ public static class LocalizationPersistenceMapper
             SemanticKey.Of(row.Key),
             LanguageCode.Of(row.LanguageCode),
             row.Text,
-            row.Revision,
-            row.LemmaKey is null ? null : SemanticKey.Of(row.LemmaKey));
+            row.Revision);
 
     public static VoiceRoleConfigRow ToRow(VoiceRoleConfig config)
         => new()

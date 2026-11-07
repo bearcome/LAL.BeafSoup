@@ -26,7 +26,7 @@ public sealed class SentenceTokenRow
     public int Start { get; set; }
     public int Length { get; set; }
     public string Kind { get; set; } = "";
-    public Guid? InflectionFormId { get; set; }
+    public Guid? FormCellId { get; set; }
 }
 
 /// <summary>跨词元短语标注行：索引绑定文本修订号，修订失配即失效。</summary>

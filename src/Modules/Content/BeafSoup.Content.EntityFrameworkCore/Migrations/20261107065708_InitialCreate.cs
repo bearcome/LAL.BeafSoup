@@ -184,7 +184,7 @@ namespace BeafSoup.Content.EntityFrameworkCore.Migrations
                     Start = table.Column<int>(type: "INTEGER", nullable: false),
                     Length = table.Column<int>(type: "INTEGER", nullable: false),
                     Kind = table.Column<string>(type: "TEXT", maxLength: 24, nullable: false),
-                    InflectionFormId = table.Column<Guid>(type: "TEXT", nullable: true)
+                    FormCellId = table.Column<Guid>(type: "TEXT", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -228,9 +228,9 @@ namespace BeafSoup.Content.EntityFrameworkCore.Migrations
                 columns: new[] { "SentenceId", "LanguageCode", "TextRevision" });
 
             migrationBuilder.CreateIndex(
-                name: "IX_sentence_tokens_InflectionFormId",
+                name: "IX_sentence_tokens_FormCellId",
                 table: "sentence_tokens",
-                column: "InflectionFormId");
+                column: "FormCellId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_skill_units_CourseId",

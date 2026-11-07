@@ -8,12 +8,12 @@ namespace BeafSoup.Audio.Generation;
 
 public sealed record ValidatedSeed(
     IReadOnlyList<VoiceRoleConfig> VoiceRoles,
-    IReadOnlyList<Lemma> Lemmas,
+    IReadOnlyList<LexicalConcept> Concepts,
     IReadOnlyList<Sentence> Sentences,
     IReadOnlyList<Dialogue> Dialogues,
     IReadOnlyList<Course> Courses,
     IReadOnlyList<LocalizedText> LocalizedTexts,
-    IReadOnlyDictionary<(string LemmaKey, string Surface), Guid> FormIdByRef);
+    IReadOnlyDictionary<(string ConceptKey, string Surface), Guid> CellIdByRef);
 
 public sealed record ValidationResult(bool IsValid, IReadOnlyList<string> Errors, ValidatedSeed? Value);
 
@@ -24,20 +24,20 @@ public static class SeedValidator
     {
         var errors = new List<string>();
         var localized = new List<LocalizedText>();
-        var formIdByRef = new Dictionary<(string, string), Guid>();
+        var cellIdByRef = new Dictionary<(string, string), Guid>();
 
         var voiceRoles = MapVoiceRoles(seed, errors);
-        var lemmas = MapLemmas(seed, errors, localized, formIdByRef);
+        var concepts = MapConcepts(seed, errors, cellIdByRef);
         var sentences = MapSentences(seed, errors, localized);
         var dialogues = MapDialogues(seed, errors);
         var courses = MapCourses(seed, errors);
 
         ValidateDialogueReferences(seed, sentences, errors);
-        ValidateTokenFormReferences(seed, formIdByRef, errors);
+        ValidateTokenFormReferences(seed, cellIdByRef, errors);
 
         return errors.Count > 0
             ? new ValidationResult(false, errors, null)
-            : new ValidationResult(true, [], new ValidatedSeed(voiceRoles, lemmas, sentences, dialogues, courses, localized, formIdByRef));
+            : new ValidationResult(true, [], new ValidatedSeed(voiceRoles, concepts, sentences, dialogues, courses, localized, cellIdByRef));
     }
 
     private static IReadOnlyList<VoiceRoleConfig> MapVoiceRoles(SeedData seed, List<string> errors)
@@ -62,57 +62,55 @@ public static class SeedValidator
         return result;
     }
 
-    private static IReadOnlyList<Lemma> MapLemmas(
-        SeedData seed, List<string> errors, List<LocalizedText> localized, Dictionary<(string, string), Guid> formIdByRef)
+    private static IReadOnlyList<LexicalConcept> MapConcepts(
+        SeedData seed, List<string> errors, Dictionary<(string, string), Guid> cellIdByRef)
     {
-        var result = new List<Lemma>();
-        foreach (var seedLemma in seed.Lemmas)
+        var result = new List<LexicalConcept>();
+        foreach (var seedConcept in seed.Concepts)
         {
             try
             {
-                var language = LanguageCode.Of(seedLemma.Language);
-                var lemmaKey = SemanticKey.Of(seedLemma.Key);
-                foreach (var (lang, text) in seedLemma.Translations)
-                    localized.Add(LocalizedText.Create(lemmaKey, LanguageCode.Of(lang), text));
+                var concept = new LexicalConcept(
+                    SemanticKey.Of(seedConcept.Key),
+                    Enum.Parse<PartOfSpeech>(seedConcept.PartOfSpeech),
+                    Enum.Parse<LexemeKind>(seedConcept.Kind));
 
-                var firstForm = seedLemma.Forms.First();
-                var initialForm = InflectionForm.Create(lemmaKey, [MapAnalysis(firstForm.Analyses.First())]);
-                var lemma = Lemma.Create(
-                    StableId.For(seedLemma.Key), language, lemmaKey,
-                    Enum.Parse<PartOfSpeech>(seedLemma.PartOfSpeech),
-                    seedLemma.Article is null ? null : Enum.Parse<GermanArticle>(seedLemma.Article),
-                    Enum.Parse<CefrLevel>(seedLemma.Cefr),
-                    initialForm);
-                formIdByRef[(seedLemma.Key, firstForm.Surface)] = initialForm.Id;
-
-                foreach (var tag in seedLemma.Tags)
-                    lemma.AddTag(tag);
-                foreach (var form in seedLemma.Forms.Skip(1))
+                foreach (var (language, lexemes) in seedConcept.Lexemes)
                 {
-                    var mapped = lemma.AddForm(SemanticKey.Of(form.Key), form.Analyses.Select(MapAnalysis).ToArray());
-                    formIdByRef[(seedLemma.Key, form.Surface)] = mapped.Id;
-                    localized.Add(LocalizedText.Create(SemanticKey.Of(form.Key), language, form.Surface));
+                    var languageCode = LanguageCode.Of(language);
+                    foreach (var seedLexeme in lexemes)
+                    {
+                        var lexeme = concept.AddLexeme(
+                            languageCode,
+                            seedLexeme.Lemma,
+                            seedLexeme.IsPrimary,
+                            Enum.Parse<LexemeRegister>(seedLexeme.Register),
+                            seedLexeme.Article is null ? null : Enum.Parse<GermanArticle>(seedLexeme.Article),
+                            Enum.Parse<CefrLevel>(seedLexeme.Cefr),
+                            seedLexeme.Display);
+                        foreach (var tag in seedLexeme.Tags)
+                            lexeme.AddTag(tag);
+                        foreach (var (paradigmKey, surfaces) in seedLexeme.Forms)
+                        {
+                            for (var slot = 0; slot < surfaces.Count; slot++)
+                            {
+                                var cell = lexeme.AddParadigmCell(
+                                    ParadigmCell.ComputeId(seedConcept.Key, language, seedLexeme.Lemma, paradigmKey, slot),
+                                    paradigmKey, slot, surfaces[slot]);
+                                cellIdByRef[(seedConcept.Key, surfaces[slot])] = cell.Id;
+                            }
+                        }
+                    }
                 }
-                result.Add(lemma);
+                result.Add(concept);
             }
             catch (Exception ex) when (ex is DomainException or ArgumentException or InvalidOperationException)
             {
-                errors.Add($"lemmas.json[{seedLemma.Key}]：{ex.Message}");
+                errors.Add($"concepts.json[{seedConcept.Key}]：{ex.Message}");
             }
         }
         return result;
     }
-
-    private static GrammaticalAnalysis MapAnalysis(SeedAnalysis a) => new(
-        Case: ParseEnum<GrammaticalCase>(a.Case),
-        Number: ParseEnum<GrammaticalNumber>(a.Number),
-        Person: ParseEnum<GrammaticalPerson>(a.Person),
-        Tense: ParseEnum<GrammaticalTense>(a.Tense),
-        Gender: ParseEnum<GrammaticalGender>(a.Gender),
-        Degree: ParseEnum<GrammaticalDegree>(a.Degree));
-
-    private static TEnum? ParseEnum<TEnum>(string? value) where TEnum : struct
-        => value is null ? null : Enum.Parse<TEnum>(value);
 
     private static IReadOnlyList<Sentence> MapSentences(SeedData seed, List<string> errors, List<LocalizedText> localized)
     {
@@ -215,21 +213,21 @@ public static class SeedValidator
     }
 
     private static void ValidateTokenFormReferences(
-        SeedData seed, IReadOnlyDictionary<(string, string), Guid> formIdByRef, List<string> errors)
+        SeedData seed, IReadOnlyDictionary<(string, string), Guid> cellIdByRef, List<string> errors)
     {
         foreach (var sentence in seed.Sentences)
         {
             foreach (var token in sentence.Localizations.SelectMany(l => l.Tokens))
             {
-                if (token.FormLemmaKey is null && token.FormSurface is null)
+                if (token.ConceptKey is null && token.FormSurface is null)
                     continue;
-                if (token.FormLemmaKey is null || token.FormSurface is null)
+                if (token.ConceptKey is null || token.FormSurface is null)
                 {
-                    errors.Add($"sentences.json[{sentence.Id}]：词形链接必须同时给出 lemmaKey 与 surface。");
+                    errors.Add($"sentences.json[{sentence.Id}]：词形链接必须同时给出 conceptKey 与 formSurface。");
                     continue;
                 }
-                if (!formIdByRef.ContainsKey((token.FormLemmaKey, token.FormSurface)))
-                    errors.Add($"sentences.json[{sentence.Id}]：词形链接 {token.FormLemmaKey}/{token.FormSurface} 在 lemmas.json 中不存在。");
+                if (!cellIdByRef.ContainsKey((token.ConceptKey, token.FormSurface)))
+                    errors.Add($"sentences.json[{sentence.Id}]：词形链接 {token.ConceptKey}/{token.FormSurface} 在 concepts.json 中不存在（须命中某个范式槽位）。");
             }
         }
     }

@@ -52,7 +52,7 @@ public sealed class ContentDbContext : DbContext
             b.Property(x => x.SentenceId).HasMaxLength(64);
             b.Property(x => x.LanguageCode).HasMaxLength(20);
             b.Property(x => x.Kind).HasMaxLength(24);
-            b.HasIndex(x => x.InflectionFormId);
+            b.HasIndex(x => x.FormCellId);
         });
 
         modelBuilder.Entity<SentenceSpanLinkRow>(static b =>

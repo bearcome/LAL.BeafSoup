@@ -17,70 +17,7 @@ namespace BeafSoup.Vocabulary.EntityFrameworkCore.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.14");
 
-            modelBuilder.Entity("BeafSoup.Vocabulary.EntityFrameworkCore.FormAnalysisRow", b =>
-                {
-                    b.Property<Guid>("FormId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("Ordinal")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Case")
-                        .HasMaxLength(16)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Degree")
-                        .HasMaxLength(16)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Gender")
-                        .HasMaxLength(16)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Number")
-                        .HasMaxLength(16)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Person")
-                        .HasMaxLength(16)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Tense")
-                        .HasMaxLength(16)
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("FormId", "Ordinal");
-
-                    b.ToTable("form_analyses", (string)null);
-                });
-
-            modelBuilder.Entity("BeafSoup.Vocabulary.EntityFrameworkCore.InflectionFormRow", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT");
-
-                    b.Property<Guid>("LemmaId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("Ordinal")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("SurfaceKey")
-                        .IsRequired()
-                        .HasMaxLength(128)
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("LemmaId");
-
-                    b.HasIndex("SurfaceKey");
-
-                    b.ToTable("inflection_forms", (string)null);
-                });
-
-            modelBuilder.Entity("BeafSoup.Vocabulary.EntityFrameworkCore.LemmaRow", b =>
+            modelBuilder.Entity("BeafSoup.Vocabulary.EntityFrameworkCore.LexemeRow", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -95,32 +32,45 @@ namespace BeafSoup.Vocabulary.EntityFrameworkCore.Migrations
                         .HasMaxLength(4)
                         .HasColumnType("TEXT");
 
+                    b.Property<Guid>("ConceptId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DisplayWord")
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsPrimary")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("LanguageCode")
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("LemmaKey")
+                    b.Property<string>("Lemma")
                         .IsRequired()
                         .HasMaxLength(128)
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("PartOfSpeech")
+                    b.Property<int>("Ordinal")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Register")
                         .IsRequired()
                         .HasMaxLength(16)
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("LemmaKey")
+                    b.HasIndex("ConceptId", "LanguageCode", "Ordinal")
                         .IsUnique();
 
-                    b.ToTable("lemmas", (string)null);
+                    b.ToTable("lexemes", (string)null);
                 });
 
-            modelBuilder.Entity("BeafSoup.Vocabulary.EntityFrameworkCore.LemmaTagRow", b =>
+            modelBuilder.Entity("BeafSoup.Vocabulary.EntityFrameworkCore.LexemeTagRow", b =>
                 {
-                    b.Property<Guid>("LemmaId")
+                    b.Property<Guid>("LexemeId")
                         .HasColumnType("TEXT");
 
                     b.Property<int>("Ordinal")
@@ -131,48 +81,108 @@ namespace BeafSoup.Vocabulary.EntityFrameworkCore.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("TEXT");
 
-                    b.HasKey("LemmaId", "Ordinal");
+                    b.HasKey("LexemeId", "Ordinal");
 
-                    b.ToTable("lemma_tags", (string)null);
+                    b.ToTable("lexeme_tags", (string)null);
                 });
 
-            modelBuilder.Entity("BeafSoup.Vocabulary.EntityFrameworkCore.FormAnalysisRow", b =>
+            modelBuilder.Entity("BeafSoup.Vocabulary.EntityFrameworkCore.LexicalConceptRow", b =>
                 {
-                    b.HasOne("BeafSoup.Vocabulary.EntityFrameworkCore.InflectionFormRow", null)
-                        .WithMany("Analyses")
-                        .HasForeignKey("FormId")
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ConceptKey")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PartOfSpeech")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ConceptKey")
+                        .IsUnique();
+
+                    b.ToTable("lexical_concepts", (string)null);
+                });
+
+            modelBuilder.Entity("BeafSoup.Vocabulary.EntityFrameworkCore.ParadigmCellRow", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("LexemeId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ParadigmKey")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("SlotOrdinal")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Surface")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LexemeId");
+
+                    b.HasIndex("ParadigmKey");
+
+                    b.ToTable("paradigm_cells", (string)null);
+                });
+
+            modelBuilder.Entity("BeafSoup.Vocabulary.EntityFrameworkCore.LexemeRow", b =>
+                {
+                    b.HasOne("BeafSoup.Vocabulary.EntityFrameworkCore.LexicalConceptRow", null)
+                        .WithMany("Lexemes")
+                        .HasForeignKey("ConceptId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("BeafSoup.Vocabulary.EntityFrameworkCore.InflectionFormRow", b =>
+            modelBuilder.Entity("BeafSoup.Vocabulary.EntityFrameworkCore.LexemeTagRow", b =>
                 {
-                    b.HasOne("BeafSoup.Vocabulary.EntityFrameworkCore.LemmaRow", null)
-                        .WithMany("Forms")
-                        .HasForeignKey("LemmaId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("BeafSoup.Vocabulary.EntityFrameworkCore.LemmaTagRow", b =>
-                {
-                    b.HasOne("BeafSoup.Vocabulary.EntityFrameworkCore.LemmaRow", null)
+                    b.HasOne("BeafSoup.Vocabulary.EntityFrameworkCore.LexemeRow", null)
                         .WithMany("Tags")
-                        .HasForeignKey("LemmaId")
+                        .HasForeignKey("LexemeId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("BeafSoup.Vocabulary.EntityFrameworkCore.InflectionFormRow", b =>
+            modelBuilder.Entity("BeafSoup.Vocabulary.EntityFrameworkCore.ParadigmCellRow", b =>
                 {
-                    b.Navigation("Analyses");
+                    b.HasOne("BeafSoup.Vocabulary.EntityFrameworkCore.LexemeRow", null)
+                        .WithMany("Cells")
+                        .HasForeignKey("LexemeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
-            modelBuilder.Entity("BeafSoup.Vocabulary.EntityFrameworkCore.LemmaRow", b =>
+            modelBuilder.Entity("BeafSoup.Vocabulary.EntityFrameworkCore.LexemeRow", b =>
                 {
-                    b.Navigation("Forms");
+                    b.Navigation("Cells");
 
                     b.Navigation("Tags");
+                });
+
+            modelBuilder.Entity("BeafSoup.Vocabulary.EntityFrameworkCore.LexicalConceptRow", b =>
+                {
+                    b.Navigation("Lexemes");
                 });
 #pragma warning restore 612, 618
         }

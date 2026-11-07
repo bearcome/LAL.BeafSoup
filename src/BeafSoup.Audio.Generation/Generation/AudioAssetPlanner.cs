@@ -6,7 +6,7 @@ using BeafSoup.Vocabulary;
 
 namespace BeafSoup.Audio.Generation.Generation;
 
-/// <summary>枚举全部待生成资产：词 × 3 角色、句子 × 3 角色；对话行校验其 (句子, 角色) 组合已被覆盖（同路径去重）。</summary>
+/// <summary>枚举全部待生成资产：词元 × 已配置音色角色、句子 × 3 角色；对话行校验其 (句子, 角色) 组合已被覆盖（同路径去重）。</summary>
 public static class AudioAssetPlanner
 {
     public static IReadOnlyList<PlannedAsset> Plan(ValidatedSeed seed, ToolOptions options)
@@ -18,23 +18,29 @@ public static class AudioAssetPlanner
 
         var plan = new List<PlannedAsset>();
 
-        foreach (var lemma in seed.Lemmas)
+        foreach (var concept in seed.Concepts)
         {
-            var lemmaText = seed.LocalizedTexts.First(t => t.Key == lemma.LemmaKey && t.Language == lemma.Language).Text;
-            var article = lemma.Article?.ToString().ToLowerInvariant();
-            // 名词单词音频须带冠词朗读（如 "der Kaffee"），无冠词词仅朗读词元；见 audio-asset-spec.md 内容硬规则
-            var ttsText = article is null ? lemmaText : $"{article} {lemmaText}";
-            foreach (var (role, config) in rolesByLanguage[lemma.Language.Value])
+            foreach (var lexeme in concept.Lexemes)
             {
-                var asset = AudioAsset.Word(lemma.Language, article, lemmaText, role);
-                plan.Add(new PlannedAsset(
-                    AudioPathBuilder.BuildRelativePath(asset, config.AssetFileToken),
-                    normalizer.Normalize(ttsText),
-                    config.TtsVoiceName,
-                    config.AssetFileToken,
-                    SourceKind: "word",
-                    SourceKey: lemma.LemmaKey.Value,
-                    role));
+                // 未配置音色角色的语言（如 zh-CN 尚未配角色）跳过单词音频
+                if (!rolesByLanguage.TryGetValue(lexeme.Language.Value, out var roles))
+                    continue;
+                var article = lexeme.Article?.ToString().ToLowerInvariant();
+                var lemma = lexeme.Lemma.Replace('_', ' ');
+                // 名词单词音频须带冠词朗读（如 "der Kaffee"），无冠词词仅朗读词元；见 audio-asset-spec.md 内容硬规则
+                var ttsText = article is null ? lemma : $"{article} {lemma}";
+                foreach (var (role, config) in roles)
+                {
+                    var asset = AudioAsset.Word(lexeme.Language, article, lexeme.Lemma, role);
+                    plan.Add(new PlannedAsset(
+                        AudioPathBuilder.BuildRelativePath(asset, config.AssetFileToken),
+                        normalizer.Normalize(ttsText),
+                        config.TtsVoiceName,
+                        config.AssetFileToken,
+                        SourceKind: "word",
+                        SourceKey: lexeme.Id.ToString(),
+                        role));
+                }
             }
         }
 

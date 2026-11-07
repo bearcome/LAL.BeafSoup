@@ -217,7 +217,7 @@ namespace BeafSoup.Content.EntityFrameworkCore.Migrations
                     b.Property<int>("Ordinal")
                         .HasColumnType("INTEGER");
 
-                    b.Property<Guid?>("InflectionFormId")
+                    b.Property<Guid?>("FormCellId")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Kind")
@@ -233,7 +233,7 @@ namespace BeafSoup.Content.EntityFrameworkCore.Migrations
 
                     b.HasKey("SentenceId", "LanguageCode", "Ordinal");
 
-                    b.HasIndex("InflectionFormId");
+                    b.HasIndex("FormCellId");
 
                     b.ToTable("sentence_tokens", (string)null);
                 });

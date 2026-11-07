@@ -14,7 +14,8 @@
 ```
 
 - `article`：名词冠词小写（`der`/`die`/`das`）；无冠词名词、动词、形容词等去掉 `{article}-`。
-- `lemma`：词典原形，空格转 `-`，变音符号保留（`ä/ö/ü/ß`）。
+- `lemma`：词典原形，空格转 `-`；短语的词间 `_` 同样在文件名中转 `-`（如 `guten_Tag` → `guten-Tag`）；变音符号保留（`ä/ö/ü/ß`）。
+- 单词音频为**每个词元**（所有已配置音色角色的语言，含非主词元）各生成一份。
 - `{assetFileToken}`：从 `VoiceRoleConfig` 读取的稳定文件名片段（如 `Max` / `Mia` / `Lars`），不是 UI 显示名或 Azure 语音 id。修改该值视为资产路径变更。
 
 ### 句子音频
@@ -35,7 +36,7 @@
 
 ## 生成管线（离线，第 2 阶段）
 
-1. 内容数据（句子含每行角色 + **TTS 文本**字段）→ 批量控制台工具（`BeafSoup.Audio.Generation`）。
+1. 内容数据（句子的每行角色 + **TTS 文本**字段；词元的 lemma/冠词/语体）→ 批量控制台工具（`BeafSoup.Audio.Generation`）。
 2. 工具渲染 SSML → 调用 Azure TTS → 按约定写文件；幂等（已存在则跳过，`--force` 重生成）。
 3. Azure 密钥只存在于仓库根 `secret.json`（已 git 忽略，结构 `AzureTTS: { Endpoint, ApiKey, Region }`），由工具运行时绑定；非机密配置（输出目录、CEFR→语速映射、角色韵律覆盖）在工具的 `appsettings.json`。WASM 应用永不直接调用 Azure。
 4. 工具命令：`validate`（只校验种子数据，不触网）、`generate --dry-run`（打印资产清单）、`generate`（实际合成并写 `manifest.json`）。
@@ -47,6 +48,7 @@
    - `{sentenceId}-{assetFileToken}.mp3`
 3. 标点规范化、数字展开（`7` → `sieben`）、按 CEFR 等级调节 SSML 语速，均在生成期完成；应用端原样播放。
 4. **名词单词音频带冠词朗读**：名词的 TTS 文本为 `冠词 + 空格 + 词元`（如 `der Kaffee`），冠词取该名词的定冠词（`der/die/das`，小写拼入）；无冠词名词（如仅用复数的名词）及动词、形容词等其他词性仅朗读词元本身。
+5. **短语按词朗读**：短语的 TTS 文本将词间 `_` 还原为空格（如 `guten_Tag` → `guten Tag`）。
 
 ## 变更策略
 

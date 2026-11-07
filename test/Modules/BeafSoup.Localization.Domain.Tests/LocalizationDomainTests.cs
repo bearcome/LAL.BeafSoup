@@ -48,14 +48,6 @@ public class LocalizedTextTests
         text.IsStaleFor(2).Should().BeTrue();
         text.IsStaleFor(1).Should().BeFalse();
     }
-
-    [Fact]
-    public void 词元解释走同一语义键()
-    {
-        var lemmaKey = SemanticKey.Of("word.coffee");
-        var text = LocalizedText.Create(lemmaKey, LanguageCode.Of("zh-CN"), "咖啡", lemmaKey: lemmaKey);
-        text.LemmaKey.Should().Be(lemmaKey);
-    }
 }
 
 public class VoiceRoleConfigTests

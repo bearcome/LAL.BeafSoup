@@ -19,7 +19,7 @@ public static class SeedLoader
         var seed = new SeedData
         {
             VoiceRoles = LoadFile<List<SeedVoiceRole>>(seedDirectory, "voices.json"),
-            Lemmas = LoadFile<List<SeedLemma>>(seedDirectory, "lemmas.json"),
+            Concepts = LoadFile<List<SeedConcept>>(seedDirectory, "concepts.json"),
             Sentences = LoadFile<List<SeedSentence>>(seedDirectory, "sentences.json"),
             Dialogues = LoadFile<List<SeedDialogue>>(seedDirectory, "dialogues.json"),
             Courses = LoadFile<List<SeedCourse>>(seedDirectory, "courses.json"),

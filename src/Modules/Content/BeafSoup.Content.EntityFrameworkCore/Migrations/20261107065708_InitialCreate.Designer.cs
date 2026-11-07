@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BeafSoup.Content.EntityFrameworkCore.Migrations
 {
     [DbContext(typeof(ContentDbContext))]
-    [Migration("20261106072736_InitialCreate")]
+    [Migration("20261107065708_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -220,7 +220,7 @@ namespace BeafSoup.Content.EntityFrameworkCore.Migrations
                     b.Property<int>("Ordinal")
                         .HasColumnType("INTEGER");
 
-                    b.Property<Guid?>("InflectionFormId")
+                    b.Property<Guid?>("FormCellId")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Kind")
@@ -236,7 +236,7 @@ namespace BeafSoup.Content.EntityFrameworkCore.Migrations
 
                     b.HasKey("SentenceId", "LanguageCode", "Ordinal");
 
-                    b.HasIndex("InflectionFormId");
+                    b.HasIndex("FormCellId");
 
                     b.ToTable("sentence_tokens", (string)null);
                 });

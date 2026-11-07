@@ -23,7 +23,7 @@ public static class ContentPersistenceMapper
                     Start = token.Start,
                     Length = token.Length,
                     Kind = token.Kind.ToString(),
-                    InflectionFormId = token.InflectionFormId,
+                    FormCellId = token.FormCellId,
                 }).ToList(),
             }).ToList(),
         };
@@ -35,7 +35,7 @@ public static class ContentPersistenceMapper
         {
             var tokens = tokenization.Tokens
                 .OrderBy(t => t.Ordinal)
-                .Select(t => new SentenceToken(t.Start, t.Length, Enum.Parse<SentenceTokenKind>(t.Kind), t.InflectionFormId))
+                .Select(t => new SentenceToken(t.Start, t.Length, Enum.Parse<SentenceTokenKind>(t.Kind), t.FormCellId))
                 .ToArray();
             // 覆盖性由领域构造校验；全文长度由末片段终点还原
             var fullTextLength = tokens.Max(t => t.End);

@@ -42,7 +42,7 @@
 | 题型 | 判定正确的依据 |
 |---|---|
 | `WordDefinitionMcq` | 所选选项的稳定释义引用与题目指定的基础语言释义引用一致；内容发布时确保只有一个正确选项。 |
-| `SentenceClozeMcq` | 所选选项的 `InflectionFormId` 或短语引用与空位的正确答案引用一致；不按显示文本猜测，且仅有一个正确选项。 |
+| `SentenceClozeMcq` | 所选选项的 `ParadigmCellId` 或短语引用与空位的正确答案引用一致；不按显示文本猜测，且仅有一个正确选项。 |
 | `SentenceClozeInput` | 按已配置的目标语言规范化输入，并与空位明确列出的可接受词形逐一匹配；匹配任一项才正确。 |
 | `SentenceTranslationOrder` | 所提交的词块实例 ID 序列与题目负载的正确顺序完全一致，且所有词块各出现一次。 |
 | `DialogueListeningMcq` | 所选选项 ID 与理解题负载中的正确选项 ID 一致；音频播放或重播本身不构成答案。 |

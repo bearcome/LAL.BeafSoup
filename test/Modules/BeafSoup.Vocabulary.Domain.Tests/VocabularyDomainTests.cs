@@ -5,62 +5,137 @@ using Xunit;
 
 namespace BeafSoup.Vocabulary.Domain.Tests;
 
-public class LemmaTests
+public class LexicalConceptTests
 {
     private static readonly LanguageCode De = LanguageCode.Of("de-DE");
-    private static readonly SemanticKey Key = SemanticKey.Of("word.coffee");
+    private static readonly LanguageCode Zh = LanguageCode.Of("zh-CN");
 
-    private static Lemma CreateLemma()
+    private static LexicalConcept CreateDrinkConcept()
     {
-        var initial = InflectionForm.Create(Key, [new GrammaticalAnalysis(Case: GrammaticalCase.Nominative, Number: GrammaticalNumber.Singular)]);
-        return Lemma.Create(Guid.NewGuid(), De, Key, PartOfSpeech.Noun, GermanArticle.Der, CefrLevel.A1, initial);
+        var concept = new LexicalConcept(SemanticKey.Of("concept.drink"), PartOfSpeech.Verb, LexemeKind.Word);
+        concept.AddLexeme(De, "trinken", isPrimary: true, LexemeRegister.Neutral, article: null, CefrLevel.A1);
+        concept.AddLexeme(De, "zechen", isPrimary: false, LexemeRegister.Elevated, article: null, CefrLevel.B2);
+        concept.AddLexeme(Zh, "喝", isPrimary: true, LexemeRegister.Common, article: null, CefrLevel.A1);
+        concept.AddLexeme(Zh, "饮", isPrimary: false, LexemeRegister.Literary, article: null, CefrLevel.B2);
+        return concept;
     }
 
     [Fact]
-    public void 原形本身必须是InflectionForm()
+    public void 一个语义对应多个词元_各语言恰一个主词元()
     {
-        var initial = InflectionForm.Create(Key, [new GrammaticalAnalysis()]);
-        var lemma = Lemma.Create(Guid.NewGuid(), De, Key, PartOfSpeech.Noun, GermanArticle.Der, CefrLevel.A1, initial);
-        lemma.Forms.Should().ContainSingle().Which.SurfaceKey.Should().Be(Key);
+        var concept = CreateDrinkConcept();
+        concept.Lexemes.Should().HaveCount(4);
+        concept.PrimaryLexeme(De).Lemma.Should().Be("trinken");
+        concept.PrimaryLexeme(Zh).Lemma.Should().Be("喝");
     }
 
     [Fact]
-    public void 初始词形语义键必须等于词元键()
+    public void 同语言不允许第二个主词元()
     {
-        var wrongForm = InflectionForm.Create(SemanticKey.Of("word.coffee.form.gen-sg"), [new GrammaticalAnalysis()]);
-        var act = () => Lemma.Create(Guid.NewGuid(), De, Key, PartOfSpeech.Noun, GermanArticle.Der, CefrLevel.A1, wrongForm);
-        act.Should().Throw<DomainException>().Which.Code.Should().Be(VocabularyErrorCodes.InitialFormMustMatchLemmaKey);
+        var concept = CreateDrinkConcept();
+        var act = () => concept.AddLexeme(De, "saufen", isPrimary: true, LexemeRegister.Colloquial, article: null, CefrLevel.C1);
+        act.Should().Throw<DomainException>().Which.Code.Should().Be(VocabularyErrorCodes.MultiplePrimaryLexemes);
     }
 
     [Fact]
-    public void 同一表单不允许重复相同语法分析()
+    public void 同一概念同语言lemma不重复()
     {
-        var lemma = CreateLemma();
-        var analyses = new[]
-        {
-            new GrammaticalAnalysis(Case: GrammaticalCase.Accusative, Number: GrammaticalNumber.Singular),
-            new GrammaticalAnalysis(Case: GrammaticalCase.Accusative, Number: GrammaticalNumber.Singular),
-        };
-        var act = () => lemma.AddForm(SemanticKey.Of("word.coffee.form.acc-sg"), analyses);
-        act.Should().Throw<DomainException>().Which.Code.Should().Be(VocabularyErrorCodes.DuplicateAnalysis);
+        var concept = CreateDrinkConcept();
+        var act = () => concept.AddLexeme(De, "trinken", isPrimary: false, LexemeRegister.Neutral, article: null, CefrLevel.A1);
+        act.Should().Throw<DomainException>().Which.Code.Should().Be(VocabularyErrorCodes.DuplicateLexeme);
     }
 
     [Fact]
-    public void 词形必须至少携带一个语法分析()
+    public void 还原时缺少主词元的库数据失败()
     {
-        var lemma = CreateLemma();
-        var act = () => lemma.AddForm(SemanticKey.Of("word.coffee.form.empty"), []);
-        act.Should().Throw<DomainException>().Which.Code.Should().Be(VocabularyErrorCodes.FormRequiresAnalysis);
+        var concept = CreateDrinkConcept();
+        var lexemes = concept.Lexemes.Where(l => !(l.Language == Zh && l.IsPrimary)).ToArray();
+        var act = () => LexicalConcept.Restore(concept.Id, concept.ConceptKey, concept.PartOfSpeech, concept.Kind, lexemes);
+        act.Should().Throw<DomainException>().Which.Code.Should().Be(VocabularyErrorCodes.MissingPrimaryLexeme);
     }
 
     [Fact]
-    public void 受控标签非空且不重复()
+    public void 词元Id由概念语言lemma确定性生成_跨读写稳定()
     {
-        var lemma = CreateLemma();
-        lemma.AddTag("food");
-        lemma.Tags.Should().Equal("food");
-        var act = () => lemma.AddTag("food");
-        act.Should().Throw<DomainException>().Which.Code.Should().Be(VocabularyErrorCodes.DuplicateTag);
+        var first = CreateDrinkConcept();
+        var second = CreateDrinkConcept();
+        first.Lexemes.Select(l => l.Id).Should().Equal(second.Lexemes.Select(l => l.Id));
+    }
+
+    [Fact]
+    public void 冠词仅名词可用()
+    {
+        var concept = new LexicalConcept(SemanticKey.Of("concept.drink"), PartOfSpeech.Verb, LexemeKind.Word);
+        var act = () => concept.AddLexeme(De, "trinken", isPrimary: true, LexemeRegister.Neutral, GermanArticle.Der, CefrLevel.A1);
+        act.Should().Throw<DomainException>().Which.Code.Should().Be(VocabularyErrorCodes.ArticleOnlyForNouns);
+    }
+
+    [Fact]
+    public void 名词展示文本可含冠词_与检索lemma分离()
+    {
+        var concept = new LexicalConcept(SemanticKey.Of("concept.coffee"), PartOfSpeech.Noun, LexemeKind.Word);
+        var lexeme = concept.AddLexeme(De, "Kaffee", isPrimary: true, LexemeRegister.Neutral, GermanArticle.Der, CefrLevel.A1, displayWord: "der Kaffee");
+        lexeme.Lemma.Should().Be("Kaffee");
+        lexeme.DisplayWord.Should().Be("der Kaffee");
+    }
+
+    [Fact]
+    public void 单词lemma不允许含连接符_短语lemma用下划线连接词与词()
+    {
+        var word = new LexicalConcept(SemanticKey.Of("concept.drink"), PartOfSpeech.Verb, LexemeKind.Word);
+        var actWord = () => word.AddLexeme(De, "guten_Tag", isPrimary: true, LexemeRegister.Neutral, article: null, CefrLevel.A1);
+        actWord.Should().Throw<DomainException>().Which.Code.Should().Be(VocabularyErrorCodes.WordLemmaMustNotContainJoiner);
+
+        var phrase = new LexicalConcept(SemanticKey.Of("concept.guten.tag"), PartOfSpeech.Other, LexemeKind.Phrase);
+        phrase.AddLexeme(De, "guten_Tag", isPrimary: true, LexemeRegister.Neutral, article: null, CefrLevel.A1)
+            .Lemma.Should().Be("guten_Tag");
+        // 无语间边界的书写系统（如中文）短语 lemma 可不含 '_'
+        phrase.AddLexeme(Zh, "你好", isPrimary: true, LexemeRegister.Common, article: null, CefrLevel.A1);
+    }
+
+    [Fact]
+    public void lemma含空白字符_提示用下划线连接()
+    {
+        var phrase = new LexicalConcept(SemanticKey.Of("concept.guten.tag"), PartOfSpeech.Other, LexemeKind.Phrase);
+        var act = () => phrase.AddLexeme(De, "guten Tag", isPrimary: true, LexemeRegister.Neutral, article: null, CefrLevel.A1);
+        act.Should().Throw<DomainException>().Which.Code.Should().Be(VocabularyErrorCodes.LemmaContainsWhitespace);
+    }
+}
+
+public class ParadigmCellTests
+{
+    private static readonly LanguageCode De = LanguageCode.Of("de-DE");
+
+    private static Lexeme CreateLexeme()
+    {
+        var concept = new LexicalConcept(SemanticKey.Of("concept.drink"), PartOfSpeech.Verb, LexemeKind.Word);
+        return concept.AddLexeme(De, "trinken", isPrimary: true, LexemeRegister.Neutral, article: null, CefrLevel.A1);
+    }
+
+    [Fact]
+    public void 槽位Id由概念语言lemma范式槽位确定性生成()
+    {
+        var a = ParadigmCell.ComputeId("concept.drink", "de-DE", "trinken", "indicative_present", 2);
+        var b = ParadigmCell.ComputeId("concept.drink", "de-DE", "trinken", "indicative_present", 2);
+        a.Should().Be(b);
+        a.Should().NotBe(ParadigmCell.ComputeId("concept.drink", "de-DE", "trinken", "indicative_present", 3));
+    }
+
+    [Fact]
+    public void 同范式同槽位不允许重复()
+    {
+        var lexeme = CreateLexeme();
+        lexeme.AddParadigmCell(ParadigmCell.ComputeId("concept.drink", "de-DE", "trinken", "indicative_present", 0), "indicative_present", 0, "trinke");
+        var act = () => lexeme.AddParadigmCell(ParadigmCell.ComputeId("concept.drink", "de-DE", "trinken", "indicative_present", 0), "indicative_present", 0, "trinke");
+        act.Should().Throw<DomainException>().Which.Code.Should().Be(VocabularyErrorCodes.DuplicateParadigmCell);
+    }
+
+    [Fact]
+    public void 表层形式不能为空()
+    {
+        var lexeme = CreateLexeme();
+        var act = () => lexeme.AddParadigmCell(ParadigmCell.ComputeId("concept.drink", "de-DE", "trinken", "indicative_present", 0), "indicative_present", 0, " ");
+        act.Should().Throw<DomainException>().Which.Code.Should().Be(VocabularyErrorCodes.EmptySurface);
     }
 }
 
@@ -71,9 +146,9 @@ public class InflectionResolverTests
     {
         var candidates = new[]
         {
-            new InflectionCandidate(LemmaId: Guid.NewGuid(), FormId: Guid.NewGuid(), NormalizedSurface: "sie"),
-            new InflectionCandidate(LemmaId: Guid.NewGuid(), FormId: Guid.NewGuid(), NormalizedSurface: "sie"),
-            new InflectionCandidate(LemmaId: Guid.NewGuid(), FormId: Guid.NewGuid(), NormalizedSurface: "sie"),
+            new InflectionCandidate(ConceptId: Guid.NewGuid(), CellId: Guid.NewGuid(), NormalizedSurface: "sie"),
+            new InflectionCandidate(ConceptId: Guid.NewGuid(), CellId: Guid.NewGuid(), NormalizedSurface: "sie"),
+            new InflectionCandidate(ConceptId: Guid.NewGuid(), CellId: Guid.NewGuid(), NormalizedSurface: "sie"),
         };
         var resolver = new InflectionResolver();
         var matches = resolver.Resolve(candidates, "sie");

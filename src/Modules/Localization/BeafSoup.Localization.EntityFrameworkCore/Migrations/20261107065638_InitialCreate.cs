@@ -18,8 +18,7 @@ namespace BeafSoup.Localization.EntityFrameworkCore.Migrations
                     Key = table.Column<string>(type: "TEXT", maxLength: 128, nullable: false),
                     LanguageCode = table.Column<string>(type: "TEXT", maxLength: 20, nullable: false),
                     Text = table.Column<string>(type: "TEXT", nullable: false),
-                    Revision = table.Column<int>(type: "INTEGER", nullable: false),
-                    LemmaKey = table.Column<string>(type: "TEXT", maxLength: 128, nullable: true)
+                    Revision = table.Column<int>(type: "INTEGER", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -53,11 +52,6 @@ namespace BeafSoup.Localization.EntityFrameworkCore.Migrations
                 {
                     table.PrimaryKey("PK_voice_role_configs", x => new { x.LanguageCode, x.Role });
                 });
-
-            migrationBuilder.CreateIndex(
-                name: "IX_localized_texts_LemmaKey",
-                table: "localized_texts",
-                column: "LemmaKey");
         }
 
         /// <inheritdoc />
