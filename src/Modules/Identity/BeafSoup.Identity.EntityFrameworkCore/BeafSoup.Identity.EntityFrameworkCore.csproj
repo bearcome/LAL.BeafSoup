@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" />
+    <ProjectReference Include="../../../BeafSoup.SharedKernel/BeafSoup.SharedKernel.csproj" />
+    <ProjectReference Include="../BeafSoup.Identity.Domain/BeafSoup.Identity.Domain.csproj" />
+    <ProjectReference Include="../BeafSoup.Identity.Domain.Shared/BeafSoup.Identity.Domain.Shared.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,53 @@
+@using System.Text.Json
+@inherits GradedExerciseBase
+@inject IUiTextProvider UiText
+
+@* 句子填空选择题：句子带空（词可点击弹层），4 选 1 即时判分。 *@
+<div class="card">
+    <ClickableSentence Text="@SentenceText" BlankStart="@BlankStart" BlankLength="@BlankLength" />
+    @if (Payload.TryGetProperty("audioUrl", out var audio))
+    {
+        <AudioButton Url="@audio.GetString()" />
+    }
+    <div style="display:grid; gap: var(--spacing-2); margin-top: var(--spacing-4);">
+        @foreach (var option in Options)
+        {
+            var state = OptionState(option);
+            <button style="@OptionStyle(state)" disabled="@(state is "correct")"
+                    @onclick="() => SelectAsync(option)">
+                @(option.GetProperty("text").GetString())
+            </button>
+        }
+    </div>
+    <FeedbackBanner Grade="LastGrade" />
+</div>
+
+@code {
+    private string SentenceText => Payload.GetProperty("sentenceText").GetString() ?? "";
+    private int BlankStart => Payload.GetProperty("blankStart").GetInt32();
+    private int BlankLength => Payload.GetProperty("blankLength").GetInt32();
+    private JsonElement[] Options => Payload.GetProperty("options").EnumerateArray().ToArray();
+    private string? _selected;
+
+    private async Task SelectAsync(JsonElement option)
+    {
+        _selected = option.GetProperty("optionId").GetString();
+        using var answer = JsonDocument.Parse($$"""{"optionId":"{{_selected}}"}""");
+        await SubmitAsync(answer.RootElement.Clone());
+    }
+
+    private string OptionState(JsonElement option)
+    {
+        var id = option.GetProperty("optionId").GetString();
+        if (LastGrade is null || id != _selected)
+            return "idle";
+        return LastGrade.Correct ? "correct" : "wrong";
+    }
+
+    private static string OptionStyle(string state) => state switch
+    {
+        "correct" => "border-color: var(--color-success); background: var(--color-success-surface);",
+        "wrong" => "border-color: var(--color-error); background: var(--color-error-surface);",
+        _ => "",
+    };
+}

@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="FluentAssertions" />
+    <ProjectReference Include="../../../src/Modules/UsageAnalytics/BeafSoup.UsageAnalytics.Domain/BeafSoup.UsageAnalytics.Domain.csproj" />
+    <ProjectReference Include="../../../src/Modules/Identity/BeafSoup.Identity.Application.Contracts/BeafSoup.Identity.Application.Contracts.csproj" />
+    <ProjectReference Include="../../../src/Modules/UsageAnalytics/BeafSoup.UsageAnalytics.Application/BeafSoup.UsageAnalytics.Application.csproj" />
+  </ItemGroup>
+</Project>

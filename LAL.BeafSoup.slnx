@@ -17,6 +17,37 @@
     <Project Path="src/Modules/Vocabulary/BeafSoup.Vocabulary.EntityFrameworkCore/BeafSoup.Vocabulary.EntityFrameworkCore.csproj" />
     <Project Path="src/Modules/Content/BeafSoup.Content.EntityFrameworkCore/BeafSoup.Content.EntityFrameworkCore.csproj" />
     <Project Path="src/BeafSoup.DbMigrator/BeafSoup.DbMigrator.csproj" />
+    <Project Path="src/Modules/Localization/BeafSoup.Localization.Application.Contracts/BeafSoup.Localization.Application.Contracts.csproj" />
+    <Project Path="src/Modules/Localization/BeafSoup.Localization.Application/BeafSoup.Localization.Application.csproj" />
+    <Project Path="src/Modules/Localization/BeafSoup.Localization.HttpApi/BeafSoup.Localization.HttpApi.csproj" />
+    <Project Path="src/Modules/Identity/BeafSoup.Identity.Domain.Shared/BeafSoup.Identity.Domain.Shared.csproj" />
+    <Project Path="src/Modules/Identity/BeafSoup.Identity.Domain/BeafSoup.Identity.Domain.csproj" />
+    <Project Path="src/Modules/Identity/BeafSoup.Identity.Application.Contracts/BeafSoup.Identity.Application.Contracts.csproj" />
+    <Project Path="src/Modules/Identity/BeafSoup.Identity.Application/BeafSoup.Identity.Application.csproj" />
+    <Project Path="src/Modules/Identity/BeafSoup.Identity.EntityFrameworkCore/BeafSoup.Identity.EntityFrameworkCore.csproj" />
+    <Project Path="src/Modules/Identity/BeafSoup.Identity.HttpApi/BeafSoup.Identity.HttpApi.csproj" />
+    <Project Path="src/Modules/UsageAnalytics/BeafSoup.UsageAnalytics.Domain.Shared/BeafSoup.UsageAnalytics.Domain.Shared.csproj" />
+    <Project Path="src/Modules/UsageAnalytics/BeafSoup.UsageAnalytics.Domain/BeafSoup.UsageAnalytics.Domain.csproj" />
+    <Project Path="src/Modules/UsageAnalytics/BeafSoup.UsageAnalytics.Application.Contracts/BeafSoup.UsageAnalytics.Application.Contracts.csproj" />
+    <Project Path="src/Modules/UsageAnalytics/BeafSoup.UsageAnalytics.Application/BeafSoup.UsageAnalytics.Application.csproj" />
+    <Project Path="src/Modules/UsageAnalytics/BeafSoup.UsageAnalytics.HttpApi/BeafSoup.UsageAnalytics.HttpApi.csproj" />
+    <Project Path="src/BeafSoup.HttpApi.Host/BeafSoup.HttpApi.Host.csproj" />
+    <Project Path="src/BeafSoup.Blazor.Theming/BeafSoup.Blazor.Theming.csproj" />
+    <Project Path="src/BeafSoup.Blazor.Shared/BeafSoup.Blazor.Shared.csproj" />
+    <Project Path="src/BeafSoup.Blazor.Client/BeafSoup.Blazor.Client.csproj" />
+    <Project Path="src/Modules/Exercises/BeafSoup.Exercises.Domain/BeafSoup.Exercises.Domain.csproj" />
+    <Project Path="src/Modules/Exercises/BeafSoup.Exercises.Application.Contracts/BeafSoup.Exercises.Application.Contracts.csproj" />
+    <Project Path="src/Modules/Exercises/BeafSoup.Exercises.Application/BeafSoup.Exercises.Application.csproj" />
+    <Project Path="src/Modules/Exercises/BeafSoup.Exercises.EntityFrameworkCore/BeafSoup.Exercises.EntityFrameworkCore.csproj" />
+    <Project Path="src/Modules/Exercises/BeafSoup.Exercises.HttpApi/BeafSoup.Exercises.HttpApi.csproj" />
+    <Project Path="src/Modules/Content/BeafSoup.Content.Application.Contracts/BeafSoup.Content.Application.Contracts.csproj" />
+    <Project Path="src/Modules/Content/BeafSoup.Content.Application/BeafSoup.Content.Application.csproj" />
+    <Project Path="src/Modules/Content/BeafSoup.Content.HttpApi/BeafSoup.Content.HttpApi.csproj" />
+    <Project Path="src/Modules/Learning/BeafSoup.Learning.Application.Contracts/BeafSoup.Learning.Application.Contracts.csproj" />
+    <Project Path="src/Modules/Learning/BeafSoup.Learning.Application/BeafSoup.Learning.Application.csproj" />
+    <Project Path="src/Modules/Learning/BeafSoup.Learning.EntityFrameworkCore/BeafSoup.Learning.EntityFrameworkCore.csproj" />
+    <Project Path="src/Modules/Learning/BeafSoup.Learning.HttpApi/BeafSoup.Learning.HttpApi.csproj" />
+    <Project Path="test/Modules/BeafSoup.Exercises.Domain.Tests/BeafSoup.Exercises.Domain.Tests.csproj" />
   </Folder>
   <Folder Name="/test/">
     <Project Path="test/Modules/BeafSoup.SharedKernel.Tests/BeafSoup.SharedKernel.Tests.csproj" />
@@ -31,5 +62,8 @@
     <Project Path="test/Modules/BeafSoup.Vocabulary.EntityFrameworkCore.Tests/BeafSoup.Vocabulary.EntityFrameworkCore.Tests.csproj" />
     <Project Path="test/Modules/BeafSoup.Content.EntityFrameworkCore.Tests/BeafSoup.Content.EntityFrameworkCore.Tests.csproj" />
     <Project Path="test/BeafSoup.DbMigrator.Tests/BeafSoup.DbMigrator.Tests.csproj" />
+    <Project Path="test/Modules/BeafSoup.Identity.Domain.Tests/BeafSoup.Identity.Domain.Tests.csproj" />
+    <Project Path="test/Modules/BeafSoup.UsageAnalytics.Domain.Tests/BeafSoup.UsageAnalytics.Domain.Tests.csproj" />
+    <Project Path="test/BeafSoup.Api.Tests/BeafSoup.Api.Tests.csproj" />
   </Folder>
 </Solution>

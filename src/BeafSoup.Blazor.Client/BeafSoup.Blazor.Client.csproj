@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../BeafSoup.Blazor.Theming/BeafSoup.Blazor.Theming.csproj" />
+    <ProjectReference Include="../BeafSoup.Blazor.Shared/BeafSoup.Blazor.Shared.csproj" />
+  </ItemGroup>
+</Project>

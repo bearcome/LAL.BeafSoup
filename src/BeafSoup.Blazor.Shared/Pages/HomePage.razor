@@ -1,0 +1,12 @@
+@page "/"
+@attribute [AllowAnonymous]
+@inject IUiTextProvider UiText
+
+<h1><T Key="ui.app.title" /></h1>
+<p><T Key="ui.dashboard.welcome" /></p>
+
+<div class="skill-tree-grid">
+    <a class="card" href="/tree"><T Key="ui.nav.tree" /></a>
+    <a class="card" href="/trainer"><T Key="ui.nav.trainer" /></a>
+    <a class="card" href="/settings"><T Key="ui.nav.settings" /></a>
+</div>

@@ -1,0 +1,38 @@
+@page "/settings"
+@attribute [Authorize]
+@inject IUiTextProvider UiText
+@inject IThemeService ThemeService
+@inject AppState AppState
+@implements IDisposable
+
+<h1><T Key="ui.settings.title" /></h1>
+
+<div class="card">
+    <label><T Key="ui.settings.theme" /></label>
+    <ThemeToggle />
+    @if (AppState.CurrentProfile is { } profile)
+    {
+        <p style="color: var(--color-text-secondary);">
+            @profile.BaseLanguage → @profile.TargetLanguage · @profile.ThemePreference
+        </p>
+    }
+</div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        // 主题选择持久化到 LearnerProfile（服务端权威）；本地存储仅为可丢弃缓存
+        ThemeService.Changed += OnThemeChanged;
+        _ = SyncPreferenceAsync();
+    }
+
+    private void OnThemeChanged() => _ = SyncPreferenceAsync();
+
+    private async Task SyncPreferenceAsync()
+    {
+        var theme = ThemeService.Preference.ToString().ToLowerInvariant();
+        await AppState.UpdateThemePreferenceAsync(theme, CancellationToken.None);
+    }
+
+    public void Dispose() => ThemeService.Changed -= OnThemeChanged;
+}

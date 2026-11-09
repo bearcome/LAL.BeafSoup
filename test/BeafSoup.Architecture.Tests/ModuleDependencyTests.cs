@@ -13,6 +13,8 @@ public class ModuleDependencyTests
         "BeafSoup.Content.Domain",
         "BeafSoup.Audio.Domain",
         "BeafSoup.Learning.Domain",
+        "BeafSoup.Identity.Domain",
+        "BeafSoup.UsageAnalytics.Domain",
     ];
 
     private static readonly string[] BannedForDomain =
@@ -24,11 +26,15 @@ public class ModuleDependencyTests
         "BeafSoup.Content.Application",
         "BeafSoup.Audio.Application",
         "BeafSoup.Learning.Application",
+        "BeafSoup.Identity.Application",
+        "BeafSoup.UsageAnalytics.Application",
         "BeafSoup.Localization.EntityFrameworkCore",
         "BeafSoup.Vocabulary.EntityFrameworkCore",
         "BeafSoup.Content.EntityFrameworkCore",
         "BeafSoup.Audio.EntityFrameworkCore",
         "BeafSoup.Learning.EntityFrameworkCore",
+        "BeafSoup.Identity.EntityFrameworkCore",
+        "BeafSoup.UsageAnalytics.EntityFrameworkCore",
     ];
 
     [Fact]
@@ -71,6 +77,8 @@ public class ModuleDependencyTests
             "BeafSoup.Exercises.Domain.Shared",
             "BeafSoup.Audio.Domain.Shared",
             "BeafSoup.Learning.Domain.Shared",
+            "BeafSoup.Identity.Domain.Shared",
+            "BeafSoup.UsageAnalytics.Domain.Shared",
         };
         foreach (var name in sharedAssemblies)
         {
@@ -82,6 +90,36 @@ public class ModuleDependencyTests
                 .GetResult();
             Assert.True(result.IsSuccessful, $"Domain.Shared {name} 违规引用了其他模块 Domain.Shared：{Describe(result)}");
         }
+    }
+
+    [Fact]
+    public void 应用契约层不引用任何Domain()
+    {
+        var contractsAssemblies = new[]
+        {
+            "BeafSoup.Localization.Application.Contracts",
+            "BeafSoup.Identity.Application.Contracts",
+            "BeafSoup.UsageAnalytics.Application.Contracts",
+        };
+        foreach (var name in contractsAssemblies)
+        {
+            var referenced = Load(name).GetReferencedAssemblies().Select(a => a.Name ?? "").ToHashSet();
+            var violation = referenced.FirstOrDefault(r =>
+                r.EndsWith(".Domain", StringComparison.Ordinal) && !r.EndsWith(".Domain.Shared", StringComparison.Ordinal));
+            Assert.Null(violation);
+        }
+    }
+
+    [Fact]
+    public void BlazorShared只引用契约与DomainShared()
+    {
+        // Blazor.Client 经 Blazor.Shared 间接消费模块；安全前提：Shared 不得引用 Domain/Application/EF 实现
+        var referenced = Load("BeafSoup.Blazor.Shared").GetReferencedAssemblies().Select(a => a.Name ?? "").ToHashSet();
+        var violation = referenced.FirstOrDefault(r =>
+            r.EndsWith(".Domain", StringComparison.Ordinal)
+            || (r.Contains(".Application", StringComparison.Ordinal) && !r.EndsWith(".Application.Contracts", StringComparison.Ordinal))
+            || r.EndsWith(".EntityFrameworkCore", StringComparison.Ordinal));
+        Assert.Null(violation);
     }
 
     private static string Describe(TestResult result)

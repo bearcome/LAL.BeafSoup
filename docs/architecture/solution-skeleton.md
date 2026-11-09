@@ -52,3 +52,22 @@ LAL.BeafSoup.sln
 - 领域侧仅为持久化还原增加恢复工厂（`LocalizedText.Restore`、`LexicalConcept.Restore`、`Lexeme.Restore`），并由调用方按领域规则确定性生成概念/词元/范式槽位 Id，保证 `ParadigmCellId` 跨读写稳定。
 - 另建 `src/BeafSoup.DbMigrator` 控制台（migrate / seed / reset / export-dictionary）与三个持久化测试项目、`test/BeafSoup.DbMigrator.Tests`。
 - 已知坑：本仓库 .NET 11 RC SDK 的 `dotnet sln add` 对 `.slnx` 会误写条目，新增项目需手工编辑 `.slnx`。
+
+## 第 3 阶段实际落地（2026-11）
+
+- 新建 Identity / UsageAnalytics 模块：Identity 为完整六层（Domain.Shared/Domain/Application.Contracts/Application/EntityFrameworkCore/HttpApi）；UsageAnalytics 无 EF 层（在线/时长为 Identity 权威事实之上的只读投影，计算即投影、天然可重建）。
+- Localization 补 Application.Contracts/Application/HttpApi（UI 文案与内容标题目录，`ui` + `content` 两个 domain）。
+- 新建 `BeafSoup.HttpApi.Host`（唯一组合宿主：JWT Bearer + sid 会话活性校验、统计权限默认拒绝、CORS、领域异常 → 稳定错误码）。
+- 新建 `BeafSoup.Blazor.Client`（WASM 独立入口）/ `BeafSoup.Blazor.Shared`（页面、组件、ApiClient——只实现 Contracts 接口）/ `BeafSoup.Blazor.Theming`（主题令牌 + 主题服务）。WASM 兼容引用使用 `Microsoft.AspNetCore.Components.Web(.Authorization)` 包（不用 FrameworkReference，否则 browser-wasm RID 冲突）。
+- 新增 NuGet 依赖（变更理由）：`Microsoft.AspNetCore.Authentication.JwtBearer`（令牌校验属安全敏感路径，不自研；与既有 Microsoft 系依赖同发布列车 10.0.14）、`Microsoft.IdentityModel.JsonWebTokens`（JWT 签发）、`Microsoft.AspNetCore.Mvc.Testing`（API 集成测试宿主，标准测试设施）、`Microsoft.AspNetCore.Components.Web[.Authorization]`（WASM 客户端库引用）。口令散列未引依赖：PBKDF2-SHA256 直接用 BCL `Rfc2898DeriveBytes`。
+- 已知坑（沿用第 2 阶段）：`dotnet sln add` 对 `.slnx` 误写条目，新增项目手工编辑解决方案文件。
+
+## 第 4 阶段实际落地（2026-11）
+
+- Exercises 补 Domain（题型注册表 + 六种 handler + 版本化负载 + 复习关联声明）与 Application.Contracts/Application/EntityFrameworkCore/HttpApi；判分为服务端权威（负载声明的答案引用/可接受词形/正确顺序，绝不按显示文本推断）。
+- Learning 补 Application.Contracts/Application/EntityFrameworkCore/HttpApi；Domain 增加 FSRS-4.5 调度核心（`FsrsScheduler`，参数经 `IFsrsParameterProvider` 隔离，Hard/Easy 系数为首版实现默认 0.85/1.15 待优化器校准）与 `LearnerProgressState`（红心/连胜）。
+- Content 补 Application.Contracts/Application/HttpApi（课程树 + 课时习题引用，负载由 Exercises 按实例供给）。
+- `LearningActivity` 增加 `IsCorrect`；`LearnerProfile` 增加弹层偏好（`InflectionDisplay`/`InspectorTrigger`）。
+- Blazor.Shared 学习闭环：技能树、课时流程（逐题显示、即时判分、答对自动推进、结束总结）、六种题型组件、点词弹层（概念词典 K-V 缓存客户端）、背词模块（到期队列 + 新卡入队 + FSRS 评级）。
+- 种子管线扩展：`ui-texts.json`（界面文案）、`exercises.json`（六题型示例习题，入库前经注册表全量校验）、课程/单元/课时标题本地化；`DbMigrator` 增加 Learning/Exercises 迁移与习题入库；词典导出含词元音频 URL。
+- 测试：Exercises/Learning 领域测试、API 集成测试（`test/BeafSoup.Api.Tests`，WebApplicationFactory：学习闭环、授权边界 404、幂等重放、复习队列、统计口径）；架构测试扩展至全部新模块与 Blazor.Shared 引用边界。

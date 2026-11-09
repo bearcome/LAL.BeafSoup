@@ -9,3 +9,5 @@ ADR 索引。每份 ADR 包含：状态（提议/已接受/已废弃）、背景
 | [ADR-003](adr/ADR-003-srs-algorithm.md) | SRS 算法采用 FSRS | 已接受 |
 | [ADR-004](adr/ADR-004-server-authoritative-data.md) | 服务端权威数据与静态 WASM 客户端 | 已接受 |
 | [ADR-005](adr/ADR-005-sqlite-authority-database.md) | SQLite 作为服务端权威数据库 | 已接受 |
+| [ADR-006](adr/ADR-006-identity-provider.md) | 身份提供方、令牌与并发会话策略 | 已接受 |
+| [ADR-007](adr/ADR-007-presence-lease.md) | 在线心跳、会话租约与统计口径参数 | 已接受 |

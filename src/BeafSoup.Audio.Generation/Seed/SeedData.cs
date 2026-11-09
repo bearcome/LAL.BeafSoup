@@ -1,6 +1,6 @@
 namespace BeafSoup.Audio.Generation.Seed;
 
-/// <summary>种子数据聚合：voices/concepts/sentences/dialogues/courses 五个 JSON 文件的反序列化目标。</summary>
+/// <summary>种子数据聚合：voices/concepts/sentences/dialogues/courses/ui-texts 六个 JSON 文件的反序列化目标。</summary>
 public sealed class SeedData
 {
     public List<SeedVoiceRole> VoiceRoles { get; set; } = [];
@@ -8,6 +8,30 @@ public sealed class SeedData
     public List<SeedSentence> Sentences { get; set; } = [];
     public List<SeedDialogue> Dialogues { get; set; } = [];
     public List<SeedCourse> Courses { get; set; } = [];
+    public List<SeedUiText> UiTexts { get; set; } = [];
+    public List<SeedExercise> Exercises { get; set; } = [];
+}
+
+/// <summary>习题实例种子：负载为原始 JSON，correctCell 引用在入库时解析为稳定 ParadigmCellId。</summary>
+public sealed class SeedExercise
+{
+    public string Id { get; set; } = "";
+    public string TypeKey { get; set; } = "";
+    public int Difficulty { get; set; } = 1;
+    public System.Text.Json.JsonElement Payload { get; set; }
+}
+
+/// <summary>界面文案：domain=ui 的语义键 + N 语言版本；同一机制服务学习内容与界面文案。</summary>
+public sealed class SeedUiText
+{
+    public string Key { get; set; } = "";
+    public List<SeedUiTextLocalization> Localizations { get; set; } = [];
+}
+
+public sealed class SeedUiTextLocalization
+{
+    public string Language { get; set; } = "";
+    public string Text { get; set; } = "";
 }
 
 public sealed class SeedVoiceRole
@@ -86,13 +110,22 @@ public sealed class SeedCourse
 {
     public string Id { get; set; } = "";
     public string Key { get; set; } = "";
+    public List<SeedTitleLocalization> TitleLocalizations { get; set; } = [];
     public List<SeedSkillUnit> Units { get; set; } = [];
+}
+
+/// <summary>标题/名称的 N 语言版本：与句子全文同一套 localized_texts 机制。</summary>
+public sealed class SeedTitleLocalization
+{
+    public string Language { get; set; } = "";
+    public string Text { get; set; } = "";
 }
 
 public sealed class SeedSkillUnit
 {
     public string Id { get; set; } = "";
     public string Key { get; set; } = "";
+    public List<SeedTitleLocalization> TitleLocalizations { get; set; } = [];
     public List<SeedLesson> Lessons { get; set; } = [];
 }
 
@@ -100,4 +133,15 @@ public sealed class SeedLesson
 {
     public string Id { get; set; } = "";
     public string Key { get; set; } = "";
+
+    /// <summary>课时习题引用：instanceId 对应 exercises.json 的习题；题型键必须与习题一致。</summary>
+    public List<SeedLessonExercise> Exercises { get; set; } = [];
+
+    public List<SeedTitleLocalization> TitleLocalizations { get; set; } = [];
+}
+
+public sealed class SeedLessonExercise
+{
+    public string InstanceId { get; set; } = "";
+    public string TypeKey { get; set; } = "";
 }

@@ -1,0 +1,69 @@
+@page "/register"
+@attribute [AllowAnonymous]
+@inject IdentityApiClient IdentityClient
+@inject IAuthTokenStore Tokens
+@inject AuthStateProvider AuthState
+@inject HeartbeatService Heartbeat
+@inject AppState AppState
+@inject IUiTextProvider UiText
+@inject NavigationManager Navigation
+
+<h1><T Key="ui.auth.register.title" /></h1>
+
+<EditForm Model="_model" OnValidSubmit="SubmitAsync">
+    <div>
+        <label><T Key="ui.auth.email" /></label>
+        <InputText @bind-Value="_model.Email" type="email" autocomplete="email" />
+    </div>
+    <div>
+        <label><T Key="ui.auth.password" /></label>
+        <InputText @bind-Value="_model.Password" type="password" autocomplete="new-password" />
+    </div>
+    <button type="submit"><T Key="ui.auth.submit.register" /></button>
+</EditForm>
+
+@if (_errorKey is not null)
+{
+    <p role="alert" style="color: var(--color-error);">@UiText.Text(_errorKey)</p>
+}
+
+<p><a href="/login"><T Key="ui.auth.link.to-login" /></a></p>
+
+@code {
+    private readonly RegisterModel _model = new();
+    private string? _errorKey;
+
+    private async Task SubmitAsync()
+    {
+        _errorKey = null;
+        try
+        {
+            // RegistrationEventId 由客户端生成并持久于本次表单，重试提交同一事件 → 服务端幂等去重
+            _registrationEventId ??= Guid.NewGuid();
+            var tokens = await IdentityClient.RegisterAsync(
+                new(_model.Email, _model.Password, "zh-CN", "de-DE", _registrationEventId.Value),
+                CancellationToken.None);
+            await Tokens.StoreAsync(tokens, CancellationToken.None);
+            AuthState.NotifyLoggedIn();
+            await AppState.EnsureProfileAsync(tokens.UserId, CancellationToken.None);
+            Heartbeat.Start();
+            Navigation.NavigateTo("/");
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Conflict)
+        {
+            _errorKey = "ui.auth.error.duplicate-email";
+        }
+        catch (HttpRequestException)
+        {
+            _errorKey = "ui.auth.error.generic";
+        }
+    }
+
+    private Guid? _registrationEventId;
+
+    private sealed class RegisterModel
+    {
+        public string Email { get; set; } = "";
+        public string Password { get; set; } = "";
+    }
+}

@@ -1,0 +1,8 @@
+@inject IUiTextProvider UiText
+<span>@UiText.Text(Key)</span>
+
+@code {
+    /// <summary>界面文案键：渲染文本一律来自本地化数据层，组件内零硬编码。</summary>
+    [Parameter, EditorRequired]
+    public string Key { get; set; } = "";
+}

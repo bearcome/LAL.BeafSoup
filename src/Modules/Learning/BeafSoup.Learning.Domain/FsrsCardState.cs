@@ -10,4 +10,15 @@ public sealed class FsrsCardState
     public double Stability { get; internal set; }
     public double Difficulty { get; internal set; }
     public int SchedulingVersion { get; internal set; } = 1;
+
+    /// <summary>供持久化还原使用。</summary>
+    public static FsrsCardState Restore(FsrsCardStatus status, DateTime dueUtc, double stability, double difficulty, int schedulingVersion)
+        => new()
+        {
+            Status = status,
+            DueUtc = dueUtc,
+            Stability = stability,
+            Difficulty = difficulty,
+            SchedulingVersion = schedulingVersion,
+        };
 }

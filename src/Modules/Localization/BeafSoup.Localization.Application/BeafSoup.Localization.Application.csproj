@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../../../BeafSoup.SharedKernel/BeafSoup.SharedKernel.csproj" />
+    <ProjectReference Include="../BeafSoup.Localization.Domain/BeafSoup.Localization.Domain.csproj" />
+    <ProjectReference Include="../BeafSoup.Localization.Application.Contracts/BeafSoup.Localization.Application.Contracts.csproj" />
+  </ItemGroup>
+</Project>

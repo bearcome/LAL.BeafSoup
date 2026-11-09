@@ -1,5 +1,8 @@
 using System.Text.Encodings.Web;
 using System.Text.Json;
+using BeafSoup.Audio;
+using BeafSoup.Localization.EntityFrameworkCore;
+using BeafSoup.SharedKernel;
 using BeafSoup.Vocabulary.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,10 +17,20 @@ public static class DictionaryExporter
         Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
     };
 
+    /// <summary>词元音频默认音色角色（背单词卡片正面播放；对话行仍用各自角色）。</summary>
+    private const VoiceRole DefaultLexemeVoiceRole = VoiceRole.Female;
+
     public static async Task ExportAsync(string connectionString, string outputPath)
     {
         await using var context = new VocabularyDbContext(
             MigrationRunner.CreateOptions<VocabularyDbContext>(connectionString, "__EFMigrationsHistory_Vocabulary"));
+        await using var localization = new LocalizationDbContext(
+            MigrationRunner.CreateOptions<LocalizationDbContext>(connectionString, "__EFMigrationsHistory_Localization"));
+
+        // 语言 → 默认角色文件名片段（音频 URL 由服务端唯一解析，客户端不回推路径规则）
+        var voiceTokens = await localization.VoiceRoleConfigs
+            .Where(v => v.Role == DefaultLexemeVoiceRole.ToString())
+            .ToDictionaryAsync(v => v.LanguageCode, v => v.AssetFileToken);
 
         var concepts = await context.LexicalConcepts.ToListAsync();
         var tree = new SortedDictionary<string, object>(StringComparer.Ordinal);
@@ -33,7 +46,7 @@ public static class DictionaryExporter
             {
                 entry[group.Key] = new Dictionary<string, object>
                 {
-                    ["lexemes"] = group.OrderBy(l => l.Ordinal).Select(ToLexemeEntry).ToArray(),
+                    ["lexemes"] = group.OrderBy(l => l.Ordinal).Select(l => ToLexemeEntry(l, voiceTokens)).ToArray(),
                 };
             }
             tree[concept.ConceptKey] = entry;
@@ -45,7 +58,7 @@ public static class DictionaryExporter
         await File.WriteAllTextAsync(outputPath, JsonSerializer.Serialize(tree, JsonOptions));
     }
 
-    private static Dictionary<string, object> ToLexemeEntry(LexemeRow lexeme)
+    private static Dictionary<string, object> ToLexemeEntry(LexemeRow lexeme, IReadOnlyDictionary<string, string> voiceTokens)
     {
         var entry = new Dictionary<string, object>
         {
@@ -69,6 +82,14 @@ public static class DictionaryExporter
                     g => g.Key,
                     g => (object)g.OrderBy(c => c.SlotOrdinal).Select(c => c.Surface).ToArray(),
                     StringComparer.Ordinal);
+        }
+        // 单词音频 URL（预生成静态资产，命名见 audio-asset-spec.md）：短语 lemma 的 '_' 由命名规则还原
+        if (voiceTokens.TryGetValue(lexeme.LanguageCode, out var token))
+        {
+            var article = lexeme.Article is null ? null : char.ToLowerInvariant(lexeme.Article[0]) + lexeme.Article[1..];
+            var asset = AudioAsset.Word(
+                LanguageCode.Of(lexeme.LanguageCode), article, lexeme.Lemma, DefaultLexemeVoiceRole);
+            entry["audioUrl"] = AudioPathBuilder.BuildRelativePath(asset, token);
         }
         return entry;
     }

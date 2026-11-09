@@ -1,0 +1,18 @@
+@inject AppState AppState
+@inject IUiTextProvider UiText
+@implements IDisposable
+
+@if (AppState.Progress is { } progress)
+{
+    <div class="progress-header" role="status">
+        <span>@UiText.Text("ui.progress.hearts"): @progress.Hearts</span>
+        <span>@UiText.Text("ui.progress.xp"): @progress.Xp</span>
+        <span>@UiText.Text("ui.progress.streak"): @progress.DayStreak</span>
+    </div>
+}
+
+@code {
+    protected override void OnInitialized() => AppState.Changed += OnChanged;
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+    public void Dispose() => AppState.Changed -= OnChanged;
+}

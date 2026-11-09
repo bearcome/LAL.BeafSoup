@@ -1,5 +1,6 @@
 using BeafSoup.Audio.Generation.Seed;
 using BeafSoup.Content;
+using BeafSoup.Exercises;
 using BeafSoup.Localization;
 using BeafSoup.SharedKernel;
 using BeafSoup.Vocabulary;
@@ -13,6 +14,8 @@ public sealed record ValidatedSeed(
     IReadOnlyList<Dialogue> Dialogues,
     IReadOnlyList<Course> Courses,
     IReadOnlyList<LocalizedText> LocalizedTexts,
+    IReadOnlyList<SemanticKey> UiKeys,
+    IReadOnlyList<ExerciseInstance> Exercises,
     IReadOnlyDictionary<(string ConceptKey, string Surface), Guid> CellIdByRef);
 
 public sealed record ValidationResult(bool IsValid, IReadOnlyList<string> Errors, ValidatedSeed? Value);
@@ -30,14 +33,16 @@ public static class SeedValidator
         var concepts = MapConcepts(seed, errors, cellIdByRef);
         var sentences = MapSentences(seed, errors, localized);
         var dialogues = MapDialogues(seed, errors);
-        var courses = MapCourses(seed, errors);
+        var courses = MapCourses(seed, errors, localized);
+        var uiKeys = MapUiTexts(seed, errors, localized);
+        var exercises = MapExercises(seed, errors, cellIdByRef);
 
         ValidateDialogueReferences(seed, sentences, errors);
         ValidateTokenFormReferences(seed, cellIdByRef, errors);
 
         return errors.Count > 0
             ? new ValidationResult(false, errors, null)
-            : new ValidationResult(true, [], new ValidatedSeed(voiceRoles, concepts, sentences, dialogues, courses, localized, cellIdByRef));
+            : new ValidationResult(true, [], new ValidatedSeed(voiceRoles, concepts, sentences, dialogues, courses, localized, uiKeys, exercises, cellIdByRef));
     }
 
     private static IReadOnlyList<VoiceRoleConfig> MapVoiceRoles(SeedData seed, List<string> errors)
@@ -174,19 +179,38 @@ public static class SeedValidator
         return result;
     }
 
-    private static IReadOnlyList<Course> MapCourses(SeedData seed, List<string> errors)
+    private static IReadOnlyList<Course> MapCourses(SeedData seed, List<string> errors, List<LocalizedText> localized)
     {
+        var exercisesBySeedId = seed.Exercises.ToDictionary(e => e.Id, e => e);
         var result = new List<Course>();
         foreach (var seedCourse in seed.Courses)
         {
             try
             {
                 var course = new Course(seedCourse.Id, SemanticKey.Of(seedCourse.Key));
+                AddTitleTexts(seedCourse.Key, seedCourse.TitleLocalizations, localized, errors, $"courses.json[{seedCourse.Id}]");
                 foreach (var seedUnit in seedCourse.Units)
                 {
                     var unit = new SkillUnit(seedUnit.Id, SemanticKey.Of(seedUnit.Key));
+                    AddTitleTexts(seedUnit.Key, seedUnit.TitleLocalizations, localized, errors, $"courses.json[{seedUnit.Id}]");
                     foreach (var seedLesson in seedUnit.Lessons)
-                        unit.AddLesson(new Lesson(seedLesson.Id, SemanticKey.Of(seedLesson.Key)));
+                    {
+                        var lesson = new Lesson(seedLesson.Id, SemanticKey.Of(seedLesson.Key));
+                        AddTitleTexts(seedLesson.Key, seedLesson.TitleLocalizations, localized, errors, $"courses.json[{seedLesson.Id}]");
+                        foreach (var exerciseRef in seedLesson.Exercises)
+                        {
+                            var instanceId = StableGuid.For($"exercise:{exerciseRef.InstanceId}");
+                            var instance = exercisesBySeedId.GetValueOrDefault(exerciseRef.InstanceId);
+                            if (instance is null)
+                                throw new DomainException(ContentErrorCodes.EmptyExerciseTypeKey,
+                                    $"课时 {seedLesson.Id} 引用了不存在的习题 {exerciseRef.InstanceId}。");
+                            if (instance.TypeKey != exerciseRef.TypeKey)
+                                throw new DomainException(ContentErrorCodes.EmptyExerciseTypeKey,
+                                    $"课时 {seedLesson.Id} 习题 {exerciseRef.InstanceId} 题型键不匹配（{exerciseRef.TypeKey} ≠ {instance.TypeKey}）。");
+                            lesson.Content.AddExercise(instanceId, exerciseRef.TypeKey);
+                        }
+                        unit.AddLesson(lesson);
+                    }
                     course.AddSkillUnit(unit);
                 }
                 result.Add(course);
@@ -194,6 +218,88 @@ public static class SeedValidator
             catch (Exception ex) when (ex is DomainException or ArgumentException)
             {
                 errors.Add($"courses.json[{seedCourse.Id}]：{ex.Message}");
+            }
+        }
+        return result;
+    }
+
+    private static void AddTitleTexts(string key, IReadOnlyList<SeedTitleLocalization> localizations,
+        List<LocalizedText> localized, List<string> errors, string location)
+    {
+        foreach (var title in localizations)
+        {
+            try
+            {
+                localized.Add(LocalizedText.Create(SemanticKey.Of(key), LanguageCode.Of(title.Language), title.Text));
+            }
+            catch (Exception ex) when (ex is DomainException or ArgumentException)
+            {
+                errors.Add($"{location}：{ex.Message}");
+            }
+        }
+    }
+
+    /// <summary>习题种子 → 领域实例：经题型注册表全量校验（发布即失败原则）；correctCell 引用解析为稳定 ParadigmCellId。</summary>
+    private static IReadOnlyList<ExerciseInstance> MapExercises(
+        SeedData seed, List<string> errors, IReadOnlyDictionary<(string ConceptKey, string Surface), Guid> cellIdByRef)
+    {
+        var registry = new ExerciseRegistry(
+        [
+            new WordDefinitionMcqHandler(), new SentenceClozeMcqHandler(), new SentenceClozeInputHandler(),
+            new SentenceTranslationOrderHandler(), new DialogueListeningMcqHandler(), new DialogueClozeHandler(),
+        ]);
+        var result = new List<ExerciseInstance>();
+        foreach (var seedExercise in seed.Exercises)
+        {
+            try
+            {
+                var instanceId = StableGuid.For($"exercise:{seedExercise.Id}");
+                // correctCell { conceptKey, surface } → 稳定词形 ID 注入负载
+                var payloadNode = System.Text.Json.Nodes.JsonNode.Parse(seedExercise.Payload.GetRawText())
+                    ?? throw new DomainException(ExerciseErrorCodes.InvalidPayload, "习题负载为空。");
+                if (payloadNode["correctCell"] is { } cellRef)
+                {
+                    var conceptKey = cellRef["conceptKey"]?.GetValue<string>()
+                        ?? throw new DomainException(ExerciseErrorCodes.InvalidPayload, "correctCell 缺少 conceptKey。");
+                    var surface = cellRef["surface"]?.GetValue<string>()
+                        ?? throw new DomainException(ExerciseErrorCodes.InvalidPayload, "correctCell 缺少 surface。");
+                    if (!cellIdByRef.TryGetValue((conceptKey, surface), out var cellId))
+                        throw new DomainException(ExerciseErrorCodes.InvalidPayload,
+                            $"习题 {seedExercise.Id} 的 correctCell ({conceptKey}, {surface}) 未命中任何范式槽位。");
+                    payloadNode["correctCellId"] = cellId.ToString();
+                    payloadNode.AsObject().Remove("correctCell");
+                }
+                var payloadJson = payloadNode.ToJsonString();
+                var version = payloadNode["version"]?.GetValue<int>()
+                    ?? throw new DomainException(ExerciseErrorCodes.UnsupportedPayloadVersion, "习题负载缺少 version。");
+                var handler = registry.Resolve(seedExercise.TypeKey, version);
+                using var document = System.Text.Json.JsonDocument.Parse(payloadJson);
+                handler.ValidatePayload(document.RootElement.Clone());
+                result.Add(new ExerciseInstance(instanceId, seedExercise.TypeKey, version, payloadJson, seedExercise.Difficulty));
+            }
+            catch (Exception ex) when (ex is DomainException or ArgumentException or System.Text.Json.JsonException)
+            {
+                errors.Add($"exercises.json[{seedExercise.Id}]：{ex.Message}");
+            }
+        }
+        return result;
+    }
+
+    private static IReadOnlyList<SemanticKey> MapUiTexts(SeedData seed, List<string> errors, List<LocalizedText> localized)
+    {
+        var result = new List<SemanticKey>();
+        foreach (var uiText in seed.UiTexts)
+        {
+            try
+            {
+                var key = SemanticKey.Of(uiText.Key);
+                foreach (var loc in uiText.Localizations)
+                    localized.Add(LocalizedText.Create(key, LanguageCode.Of(loc.Language), loc.Text));
+                result.Add(key);
+            }
+            catch (Exception ex) when (ex is DomainException or ArgumentException)
+            {
+                errors.Add($"ui-texts.json[{uiText.Key}]：{ex.Message}");
             }
         }
         return result;

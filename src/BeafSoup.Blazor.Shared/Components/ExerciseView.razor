@@ -1,0 +1,32 @@
+@using BeafSoup.Exercises
+@* 题型调度：按注册表键分发到对应视图；新题型注册后在此加一行分发即可。 *@
+@switch (Presentation.TypeKey)
+{
+    case ExerciseTypeKeys.WordDefinitionMcq:
+        <WordDefinitionMcqView Presentation="Presentation" LessonId="LessonId" OnSolved="OnSolved" />
+        break;
+    case ExerciseTypeKeys.SentenceClozeMcq:
+        <SentenceClozeMcqView Presentation="Presentation" LessonId="LessonId" OnSolved="OnSolved" />
+        break;
+    case ExerciseTypeKeys.SentenceClozeInput:
+        <SentenceClozeInputView Presentation="Presentation" LessonId="LessonId" OnSolved="OnSolved" />
+        break;
+    case ExerciseTypeKeys.SentenceTranslationOrder:
+        <SentenceTranslationOrderView Presentation="Presentation" LessonId="LessonId" OnSolved="OnSolved" />
+        break;
+    case ExerciseTypeKeys.DialogueListeningMcq:
+        <DialogueListeningMcqView Presentation="Presentation" LessonId="LessonId" OnSolved="OnSolved" />
+        break;
+    case ExerciseTypeKeys.DialogueCloze:
+        <DialogueClozeView Presentation="Presentation" LessonId="LessonId" OnSolved="OnSolved" />
+        break;
+    default:
+        <div class="card" role="alert">@Presentation.TypeKey</div>
+        break;
+}
+
+@code {
+    [Parameter, EditorRequired] public ExercisePresentationDto Presentation { get; set; } = default!;
+    [Parameter] public string? LessonId { get; set; }
+    [Parameter] public EventCallback<GradeAnswerResponse> OnSolved { get; set; }
+}

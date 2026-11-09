@@ -1,0 +1,51 @@
+@page "/tree"
+@attribute [Authorize]
+@using BeafSoup.Content
+@inject AppState AppState
+@inject ContentApiClient Content
+@inject IUiTextProvider UiText
+
+<h1><T Key="ui.nav.tree" /></h1>
+<ProgressHeader />
+
+@if (_tree is null)
+{
+    <p><T Key="ui.common.loading" /></p>
+}
+else if (_tree.Count == 0)
+{
+    <div class="card"><T Key="ui.tree.empty" /></div>
+}
+else
+{
+    @foreach (var course in _tree)
+    {
+        <h2>@UiText.Text(course.TitleKey)</h2>
+        @foreach (var unit in course.Units)
+        {
+            <h3>@UiText.Text(unit.TitleKey)</h3>
+            <div class="skill-tree-grid">
+                @foreach (var lesson in unit.Lessons)
+                {
+                    <a class="card" href="@($"/lesson/{lesson.LessonId}")">@UiText.Text(lesson.TitleKey)</a>
+                }
+            </div>
+        }
+    }
+}
+
+@code {
+    private IReadOnlyList<CourseTreeDto>? _tree;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _tree = await Content.GetCourseTreeAsync(CancellationToken.None);
+        }
+        catch (HttpRequestException)
+        {
+            _tree = [];
+        }
+    }
+}

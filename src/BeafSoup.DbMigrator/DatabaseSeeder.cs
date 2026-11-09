@@ -1,5 +1,6 @@
 using BeafSoup.Audio.Generation;
 using BeafSoup.Content.EntityFrameworkCore;
+using BeafSoup.Exercises.EntityFrameworkCore;
 using BeafSoup.Localization.EntityFrameworkCore;
 using BeafSoup.SharedKernel;
 using BeafSoup.Vocabulary.EntityFrameworkCore;
@@ -51,7 +52,8 @@ public static class DatabaseSeeder
 
             context.SemanticKeys.AddRange(vocabularyKeys
                 .Select(k => LocalizationPersistenceMapper.ToRow(k, "vocabulary", now))
-                .Concat(contentKeys.Select(k => LocalizationPersistenceMapper.ToRow(k, "content", now))));
+                .Concat(contentKeys.Select(k => LocalizationPersistenceMapper.ToRow(k, "content", now)))
+                .Concat(validated.UiKeys.Select(k => LocalizationPersistenceMapper.ToRow(k, "ui", now))));
             context.LocalizedTexts.AddRange(validated.LocalizedTexts.Select(LocalizationPersistenceMapper.ToRow));
             context.VoiceRoleConfigs.AddRange(validated.VoiceRoles.Select(LocalizationPersistenceMapper.ToRow));
             await context.SaveChangesAsync();
@@ -65,7 +67,7 @@ public static class DatabaseSeeder
             await context.SaveChangesAsync();
         }
 
-        // 3) 内容：句子、对话、课程树
+        // 3) 内容：句子、对话、课程树（含课时习题引用）
         await using (var context = new ContentDbContext(
             MigrationRunner.CreateOptions<ContentDbContext>(connectionString, "__EFMigrationsHistory_Content")))
         {
@@ -75,16 +77,36 @@ public static class DatabaseSeeder
             await context.SaveChangesAsync();
         }
 
+        // 4) 习题：版本化负载实例（发布前已经注册表全量校验）
+        await using (var context = new ExercisesDbContext(
+            MigrationRunner.CreateOptions<ExercisesDbContext>(connectionString, "__EFMigrationsHistory_Exercises")))
+        {
+            context.ExerciseInstances.AddRange(validated.Exercises.Select(ToRow));
+            await context.SaveChangesAsync();
+        }
+
         Console.WriteLine($"种子填充完成：概念 {validated.Concepts.Count}，句子 {validated.Sentences.Count}，" +
-            $"对话 {validated.Dialogues.Count}，课程 {validated.Courses.Count}，本地化文本 {validated.LocalizedTexts.Count}。");
+            $"对话 {validated.Dialogues.Count}，课程 {validated.Courses.Count}，习题 {validated.Exercises.Count}，" +
+            $"本地化文本 {validated.LocalizedTexts.Count}。");
     }
+
+    private static BeafSoup.Exercises.EntityFrameworkCore.ExerciseInstanceRow ToRow(BeafSoup.Exercises.ExerciseInstance instance)
+        => new()
+        {
+            Id = instance.Id.ToString(),
+            TypeKey = instance.TypeKey,
+            PayloadVersion = instance.PayloadVersion,
+            PayloadJson = instance.PayloadJson,
+            Difficulty = instance.Difficulty,
+            HintKey = instance.HintKey,
+        };
 
     private static async Task ClearContentTablesAsync(string connectionString)
     {
         // 外键约束下按依赖顺序清空；学习/账户数据不在这些表中（第 3、4 阶段）
         string[] tables =
         [
-            "lesson_exercises", "lessons", "skill_units", "courses",
+            "lesson_exercises", "exercise_instances", "lessons", "skill_units", "courses",
             "essay_sentences", "essays", "dialogue_lines", "dialogues", "sentence_span_links",
             "sentence_tokens", "sentence_tokenizations", "sentences",
             "paradigm_cells", "lexeme_tags", "lexemes", "lexical_concepts",

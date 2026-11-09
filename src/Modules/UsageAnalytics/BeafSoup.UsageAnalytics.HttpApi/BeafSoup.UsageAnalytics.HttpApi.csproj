@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <ProjectReference Include="../../../BeafSoup.SharedKernel/BeafSoup.SharedKernel.csproj" />
+    <ProjectReference Include="../BeafSoup.UsageAnalytics.Application.Contracts/BeafSoup.UsageAnalytics.Application.Contracts.csproj" />
+    <ProjectReference Include= "../../Identity/BeafSoup.Identity.Application.Contracts/BeafSoup.Identity.Application.Contracts.csproj" />
+  </ItemGroup>
+</Project>

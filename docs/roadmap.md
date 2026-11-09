@@ -27,20 +27,21 @@
 - [x] 离线音频生成管线，按 `docs/domain/audio-asset-spec.md` 执行（第 1 阶段提前落地，本轮同步名词带冠词朗读规则）；Azure TTS 免费额度；de-DE 配置 3 个音色角色
 - [ ] 中文学德语完整课程数据（当前为每种数据 3 条的种子测试数据，正式内容填充列入后续迭代）
 
-## 第 3 阶段 — Blazor WASM 外壳
+## 第 3 阶段 — Blazor WASM 外壳（已完成 2026-11）
 
-- 独立部署 WASM 应用、模块加载、路由
-- 亮/暗主题（`docs/features/ui-theming-responsive.md`）、响应式布局
-- 本地化管道（界面文案全部来自数据层）
-- 接入独立 `HttpApi.Host`、账户注册/身份验证与使用统计；遵循 `docs/features/account-and-usage-statistics.md`。
+- [x] 独立部署 WASM 应用（`BeafSoup.Blazor.Client/.Shared/.Theming`）、路由、模块加载
+- [x] 亮/暗主题（`docs/features/ui-theming-responsive.md`）、响应式布局、PWA manifest（无闪烁内联初始化）
+- [x] 本地化管道（界面文案与内容标题全部来自数据层，零硬编码）
+- [x] 接入独立 `HttpApi.Host`、账户注册/身份验证（JWT + 单会话顶替，ADR-006）与使用统计（心跳租约，ADR-007）；统计权限默认拒绝（稳定权限标识开放）
 
-## 第 4 阶段 — 学习功能
+## 第 4 阶段 — 学习功能（已完成 2026-11）
 
-- 课程引擎 + 题型注册表；落地 `docs/features/exercise-types.md` 中的六种题型（含对话填空音频规则）
-- 点词弹层（`docs/features/word-inspector-popover.md`）
-- 带 SRS 的背单词模块（`docs/features/vocabulary-trainer.md`）
-- 多邻国式学习闭环（`docs/features/feature-catalog.md`）
-- 学习配置、学习活动、FSRS 卡片、形态掌握度及考试记录均通过 API 按账户隔离持久化。
+- [x] 课程引擎 + 题型注册表；落地 `docs/features/exercise-types.md` 中的六种题型（服务端权威判分、对话填空音频规则、负载版本化）
+- [x] 点词弹层（概念词典 K-V 缓存，纯覆盖层，见 `docs/features/word-inspector-popover.md`）
+- [x] 带 FSRS 的背单词模块（到期队列 + 每日新卡预算 + 概念级卡片 + 形态掌握度，见 `docs/features/vocabulary-trainer.md`）
+- [x] 多邻国式学习闭环（逐题显示、即时判分、红心自动恢复、连胜、经验，见 `docs/features/feature-catalog.md`）
+- [x] 学习配置、学习活动（幂等重放安全）、FSRS 卡片、形态掌握度经 API 按账户隔离持久化（考试记录随第 5 阶段 Exam 模块）
+- [x] 示例种子课覆盖六种题型（`data/seed/exercises.json` + 课程标题本地化）；完整课程内容填充列入后续迭代
 
 ## 第 5 阶段 — 考试、加固、第二门语言
 

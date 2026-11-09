@@ -1,0 +1,64 @@
+@page "/login"
+@attribute [AllowAnonymous]
+@inject IdentityApiClient IdentityClient
+@inject IAuthTokenStore Tokens
+@inject AuthStateProvider AuthState
+@inject HeartbeatService Heartbeat
+@inject AppState AppState
+@inject IUiTextProvider UiText
+@inject NavigationManager Navigation
+
+<h1><T Key="ui.auth.login.title" /></h1>
+
+<EditForm Model="_model" OnValidSubmit="SubmitAsync">
+    <div>
+        <label><T Key="ui.auth.email" /></label>
+        <InputText @bind-Value="_model.Email" type="email" autocomplete="email" />
+    </div>
+    <div>
+        <label><T Key="ui.auth.password" /></label>
+        <InputText @bind-Value="_model.Password" type="password" autocomplete="current-password" />
+    </div>
+    <button type="submit"><T Key="ui.auth.submit.login" /></button>
+</EditForm>
+
+@if (_errorKey is not null)
+{
+    <p role="alert" style="color: var(--color-error);">@UiText.Text(_errorKey)</p>
+}
+
+<p><a href="/register"><T Key="ui.auth.link.to-register" /></a></p>
+
+@code {
+    private readonly LoginModel _model = new();
+    private string? _errorKey;
+
+    private async Task SubmitAsync()
+    {
+        _errorKey = null;
+        try
+        {
+            var tokens = await IdentityClient.LoginAsync(
+                new(_model.Email, _model.Password), CancellationToken.None);
+            await Tokens.StoreAsync(tokens, CancellationToken.None);
+            AuthState.NotifyLoggedIn();
+            await AppState.EnsureProfileAsync(tokens.UserId, CancellationToken.None);
+            Heartbeat.Start();
+            Navigation.NavigateTo("/");
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+        {
+            _errorKey = "ui.auth.error.invalid-credentials";
+        }
+        catch (HttpRequestException)
+        {
+            _errorKey = "ui.auth.error.generic";
+        }
+    }
+
+    private sealed class LoginModel
+    {
+        public string Email { get; set; } = "";
+        public string Password { get; set; } = "";
+    }
+}

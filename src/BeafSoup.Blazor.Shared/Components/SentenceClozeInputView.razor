@@ -1,0 +1,39 @@
+@using System.Text.Json
+@inherits GradedExerciseBase
+@inject IUiTextProvider UiText
+
+@* 句子填空输入题：宽容判分（大小写/变音符号不敏感、冠词容忍）在服务端按负载声明执行。 *@
+<div class="card">
+    <ClickableSentence Text="@SentenceText" BlankStart="@BlankStart" BlankLength="@BlankLength" />
+    @if (Payload.TryGetProperty("audioUrl", out var audio))
+    {
+        <AudioButton Url="@audio.GetString()" />
+    }
+    <EditForm Model="_model" OnValidSubmit="SubmitInputAsync" style="margin-top: var(--spacing-4); display:flex; gap: var(--spacing-2);">
+        <InputText @bind-Value="_model.Text" placeholder="@UiText.Text("ui.exercise.type-hint")"
+                   style="flex:1;" autocomplete="off" />
+        <button type="submit" disabled="@GradingInProgress">@UiText.Text("ui.exercise.check")</button>
+    </EditForm>
+    <FeedbackBanner Grade="LastGrade" />
+</div>
+
+@code {
+    private readonly InputModel _model = new();
+
+    private string SentenceText => Payload.GetProperty("sentenceText").GetString() ?? "";
+    private int BlankStart => Payload.GetProperty("blankStart").GetInt32();
+    private int BlankLength => Payload.GetProperty("blankLength").GetInt32();
+
+    private async Task SubmitInputAsync()
+    {
+        using var answer = JsonDocument.Parse(JsonSerializer.Serialize(new { text = _model.Text }));
+        await SubmitAsync(answer.RootElement.Clone());
+        if (LastGrade is { Correct: false })
+            _model.Text = ""; // 留在当前题：清空便于修改重试
+    }
+
+    private sealed class InputModel
+    {
+        public string Text { get; set; } = "";
+    }
+}

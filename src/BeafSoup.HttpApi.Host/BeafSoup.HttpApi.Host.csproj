@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
+    <PackageReference Include="Microsoft.IdentityModel.JsonWebTokens" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
+    <ProjectReference Include="../BeafSoup.SharedKernel/BeafSoup.SharedKernel.csproj" />
+    <ProjectReference Include="../Modules/Localization/BeafSoup.Localization.Domain/BeafSoup.Localization.Domain.csproj" />
+    <ProjectReference Include="../Modules/Localization/BeafSoup.Localization.Application.Contracts/BeafSoup.Localization.Application.Contracts.csproj" />
+    <ProjectReference Include="../Modules/Localization/BeafSoup.Localization.Application/BeafSoup.Localization.Application.csproj" />
+    <ProjectReference Include="../Modules/Localization/BeafSoup.Localization.EntityFrameworkCore/BeafSoup.Localization.EntityFrameworkCore.csproj" />
+    <ProjectReference Include="../Modules/Localization/BeafSoup.Localization.HttpApi/BeafSoup.Localization.HttpApi.csproj" />
+    <ProjectReference Include="../Modules/Identity/BeafSoup.Identity.Domain/BeafSoup.Identity.Domain.csproj" />
+    <ProjectReference Include="../Modules/Identity/BeafSoup.Identity.Application.Contracts/BeafSoup.Identity.Application.Contracts.csproj" />
+    <ProjectReference Include="../Modules/Identity/BeafSoup.Identity.Application/BeafSoup.Identity.Application.csproj" />
+    <ProjectReference Include="../Modules/Identity/BeafSoup.Identity.EntityFrameworkCore/BeafSoup.Identity.EntityFrameworkCore.csproj" />
+    <ProjectReference Include="../Modules/Identity/BeafSoup.Identity.HttpApi/BeafSoup.Identity.HttpApi.csproj" />
+    <ProjectReference Include="../Modules/UsageAnalytics/BeafSoup.UsageAnalytics.Domain/BeafSoup.UsageAnalytics.Domain.csproj" />
+    <ProjectReference Include="../Modules/UsageAnalytics/BeafSoup.UsageAnalytics.Application.Contracts/BeafSoup.UsageAnalytics.Application.Contracts.csproj" />
+    <ProjectReference Include="../Modules/UsageAnalytics/BeafSoup.UsageAnalytics.Application/BeafSoup.UsageAnalytics.Application.csproj" />
+    <ProjectReference Include="../Modules/UsageAnalytics/BeafSoup.UsageAnalytics.HttpApi/BeafSoup.UsageAnalytics.HttpApi.csproj" />
+    <ProjectReference Include="../Modules/Content/BeafSoup.Content.Domain/BeafSoup.Content.Domain.csproj" />
+    <ProjectReference Include="../Modules/Content/BeafSoup.Content.Application.Contracts/BeafSoup.Content.Application.Contracts.csproj" />
+    <ProjectReference Include="../Modules/Content/BeafSoup.Content.Application/BeafSoup.Content.Application.csproj" />
+    <ProjectReference Include="../Modules/Content/BeafSoup.Content.EntityFrameworkCore/BeafSoup.Content.EntityFrameworkCore.csproj" />
+    <ProjectReference Include="../Modules/Content/BeafSoup.Content.HttpApi/BeafSoup.Content.HttpApi.csproj" />
+    <ProjectReference Include="../Modules/Exercises/BeafSoup.Exercises.Domain/BeafSoup.Exercises.Domain.csproj" />
+    <ProjectReference Include="../Modules/Exercises/BeafSoup.Exercises.Application.Contracts/BeafSoup.Exercises.Application.Contracts.csproj" />
+    <ProjectReference Include="../Modules/Exercises/BeafSoup.Exercises.Application/BeafSoup.Exercises.Application.csproj" />
+    <ProjectReference Include="../Modules/Exercises/BeafSoup.Exercises.EntityFrameworkCore/BeafSoup.Exercises.EntityFrameworkCore.csproj" />
+    <ProjectReference Include="../Modules/Exercises/BeafSoup.Exercises.HttpApi/BeafSoup.Exercises.HttpApi.csproj" />
+    <ProjectReference Include="../Modules/Learning/BeafSoup.Learning.Domain/BeafSoup.Learning.Domain.csproj" />
+    <ProjectReference Include="../Modules/Learning/BeafSoup.Learning.Application.Contracts/BeafSoup.Learning.Application.Contracts.csproj" />
+    <ProjectReference Include="../Modules/Learning/BeafSoup.Learning.Application/BeafSoup.Learning.Application.csproj" />
+    <ProjectReference Include="../Modules/Learning/BeafSoup.Learning.EntityFrameworkCore/BeafSoup.Learning.EntityFrameworkCore.csproj" />
+    <ProjectReference Include="../Modules/Learning/BeafSoup.Learning.HttpApi/BeafSoup.Learning.HttpApi.csproj" />
+  </ItemGroup>
+</Project>

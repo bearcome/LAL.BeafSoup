@@ -1,0 +1,17 @@
+@inject IThemeService ThemeService
+@inject IUiTextProvider UiText
+
+<select class="theme-toggle" value="@ThemeService.Preference" @onchange="OnPreferenceChanged"
+        aria-label="@UiText.Text("ui.settings.theme")">
+    <option value="@ThemePreference.System">@UiText.Text("ui.settings.theme.system")</option>
+    <option value="@ThemePreference.Light">@UiText.Text("ui.settings.theme.light")</option>
+    <option value="@ThemePreference.Dark">@UiText.Text("ui.settings.theme.dark")</option>
+</select>
+
+@code {
+    private async Task OnPreferenceChanged(ChangeEventArgs args)
+    {
+        if (Enum.TryParse<ThemePreference>(args.Value?.ToString(), out var preference))
+            await ThemeService.SetPreferenceAsync(preference, CancellationToken.None);
+    }
+}

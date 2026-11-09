@@ -1,0 +1,153 @@
+@using System.Text.Json
+@inject IDictionaryCache Dictionary
+@inject IUiTextProvider UiText
+@inject IJSRuntime JsRuntime
+
+@* 可点词词元：点击（默认）或悬停（仅预览）打开悬浮弹层；纯覆盖层，绝不引发回流（word-inspector-popover.md 不可协商约束）。 *@
+<span class="clickable-word" @onclick="OnTrigger" @onclick:stopPropagation="true"
+      @onmouseenter="OnHover" role="button" tabindex="0" @onkeydown="OnKeyDown">@Text</span>
+
+@if (_open && _entry is not null)
+{
+    @* 透明背景幕：点击外部 / Esc 关闭；position:fixed 不推挤布局 *@
+    <div class="popover-backdrop" @onclick="Close" @onkeydown="Close" tabindex="-1"></div>
+    <div class="popover-overlay" style="@PositionStyle">
+        <div style="display:flex; justify-content:space-between; gap: var(--spacing-2);">
+            <strong>@_displayWord</strong>
+            <button @onclick="Close">@UiText.Text("ui.inspector.close")</button>
+        </div>
+        <div style="color: var(--color-text-secondary);">@_entry.PartOfSpeech</div>
+        @if (_audioUrl is not null)
+        {
+            <AudioButton Url="@_audioUrl" />
+        }
+        <hr style="border: none; border-top: 1px solid var(--color-border);" />
+        <div>@UiText.Text("ui.trainer.definition"): <strong>@_baseLemma</strong></div>
+        <div style="margin-top: var(--spacing-2);">
+            <button @onclick="() => _showFull = !_showFull">
+                @UiText.Text(_showFull ? "ui.trainer.forms" : "ui.inspector.forms-full")
+            </button>
+            @foreach (var (paradigm, slots) in VisibleForms)
+            {
+                <div style="margin-top: var(--spacing-2);">
+                    <div style="color: var(--color-text-secondary); font-size: var(--font-size-small);">@paradigm</div>
+                    <div>@string.Join(" · ", slots)</div>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    /// <summary>词元展示文本（句子中的表层形式）。</summary>
+    [Parameter, EditorRequired]
+    public string Text { get; set; } = "";
+
+    /// <summary>目标语言（词元所属语言）。</summary>
+    [Parameter, EditorRequired]
+    public string Language { get; set; } = "de-DE";
+
+    /// <summary>基础语言（解释取该语言主词元）。</summary>
+    [Parameter]
+    public string BaseLanguage { get; set; } = "zh-CN";
+
+    /// <summary>触发方式：Click（默认）| Hover。</summary>
+    [Parameter]
+    public string Trigger { get; set; } = "Click";
+
+    private bool _open;
+    private bool _showFull;
+    private DictionaryEntry? _entry;
+    private JsonElement _targetLexeme;
+    private string _displayWord = "";
+    private string _baseLemma = "";
+    private string? _audioUrl;
+    private double _left;
+    private double _top;
+
+    private string PositionStyle => $"left:{_left}px; top:{_top}px;";
+
+    private async Task OnTrigger(MouseEventArgs args)
+    {
+        if (Trigger is not "Click")
+            return;
+        await OpenAsync(args.ClientX, args.ClientY);
+    }
+
+    private async Task OnHover(MouseEventArgs args)
+    {
+        if (Trigger is not "Hover")
+            return;
+        await OpenAsync(args.ClientX, args.ClientY);
+    }
+
+    private async Task OpenAsync(double x, double y)
+    {
+        await Dictionary.EnsureLoadedAsync(CancellationToken.None);
+        var candidates = Dictionary.FindBySurface(Text, Language);
+        _entry = candidates.FirstOrDefault();
+        if (_entry is null)
+        {
+            _open = false;
+            return;
+        }
+
+        // 目标语言主词元（名词 DisplayWord 含冠词）
+        _targetLexeme = _entry.ByLanguage.TryGetValue(Language, out var languageEntry)
+            ? languageEntry.GetProperty("lexemes").EnumerateArray().FirstOrDefault(l => l.GetProperty("isPrimary").GetBoolean())
+            : default;
+        _displayWord = _targetLexeme.ValueKind is JsonValueKind.Object && _targetLexeme.TryGetProperty("displayWord", out var display)
+            ? display.GetString() ?? Text
+            : (_targetLexeme.ValueKind is JsonValueKind.Object ? _targetLexeme.GetProperty("lemma").GetString() ?? Text : Text);
+        _audioUrl = _targetLexeme.ValueKind is JsonValueKind.Object && _targetLexeme.TryGetProperty("audioUrl", out var audio)
+            ? audio.GetString()
+            : null;
+        _baseLemma = _entry.ByLanguage.TryGetValue(BaseLanguage, out var baseEntry)
+            ? baseEntry.GetProperty("lexemes").EnumerateArray()
+                .First(l => l.GetProperty("isPrimary").GetBoolean()).GetProperty("lemma").GetString() ?? ""
+            : "";
+
+        // 视口钳制：靠近边缘自动翻转（不依赖悬停；触屏同样适用）
+        var viewport = await JsRuntime.InvokeAsync<ViewportSize>("eval", "({w: window.innerWidth, h: window.innerHeight})");
+        const double popoverWidth = 400;
+        const double popoverHeight = 320;
+        _left = Math.Min(Math.Max(8, x), Math.Max(8, viewport.W - popoverWidth));
+        _top = y + popoverHeight + 16 > viewport.H ? Math.Max(8, y - popoverHeight - 8) : y + 16;
+        _open = true;
+        _showFull = false;
+    }
+
+    private IEnumerable<(string Paradigm, IReadOnlyList<string> Slots)> VisibleForms
+    {
+        get
+        {
+            if (_targetLexeme.ValueKind is not JsonValueKind.Object
+                || !_targetLexeme.TryGetProperty("forms", out var forms))
+                return [];
+            var paradigms = forms.EnumerateObject().ToArray();
+            // Common：当前槽位（表层形式命中）+ 其余槽位补足 5 个；Full：全部范式槽位
+            if (_showFull)
+                return paradigms.Select(p => (p.Name, (IReadOnlyList<string>)p.Value.EnumerateArray().Select(s => s.GetString() ?? "").ToArray()));
+            var ordered = paradigms
+                .SelectMany(p => p.Value.EnumerateArray()
+                    .Select((s, i) => (p.Name, Slot: i, Surface: s.GetString() ?? "")))
+                .OrderByDescending(t => string.Equals(t.Surface, Text, StringComparison.OrdinalIgnoreCase))
+                .ThenBy(t => t.Name).ThenBy(t => t.Slot)
+                .Take(5)
+                .ToArray();
+            return ordered
+                .GroupBy(t => t.Name)
+                .Select(g => (g.Key, (IReadOnlyList<string>)g.OrderBy(t => t.Slot).Select(t => t.Surface).ToArray()));
+        }
+    }
+
+    private void Close() => _open = false;
+
+    private void OnKeyDown(KeyboardEventArgs args)
+    {
+        if (args.Key is "Escape")
+            Close();
+    }
+
+    private sealed record ViewportSize(int W, int H);
+}

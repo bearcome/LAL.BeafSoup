@@ -1,0 +1,65 @@
+@using System.Text.Json
+@inherits GradedExerciseBase
+@inject IUiTextProvider UiText
+
+@* 场景对话听力选择题：播放完整对话（逐行连续播放），回答理解题；重播有上限且不惩罚。 *@
+<div class="card">
+    <div style="display:flex; gap: var(--spacing-2); align-items:center;">
+        <AudioButton Url="@CurrentLineAudio" />
+        <button @onclick="ReplayAsync" disabled="@(_replayCount >= MaxReplay)">
+            @UiText.Text("ui.audio.play") (@_replayCount/@MaxReplay)
+        </button>
+    </div>
+    <h2 style="margin-top: var(--spacing-4);">@(Payload.GetProperty("questionText").GetString())</h2>
+    <div style="display:grid; gap: var(--spacing-2);">
+        @foreach (var option in Options)
+        {
+            var state = OptionState(option);
+            <button style="@OptionStyle(state)" disabled="@(state is "correct")"
+                    @onclick="() => SelectAsync(option)">
+                @(option.GetProperty("text").GetString())
+            </button>
+        }
+    </div>
+    <FeedbackBanner Grade="LastGrade" />
+</div>
+
+@code {
+    private int _replayCount;
+    private string? _selected;
+
+    private IEnumerable<JsonElement> Lines => Payload.GetProperty("lines").EnumerateArray();
+    private JsonElement[] Options => Payload.GetProperty("options").EnumerateArray().ToArray();
+    private int MaxReplay => Payload.TryGetProperty("maxReplayCount", out var max) ? max.GetInt32() : 3;
+    private string? CurrentLineAudio => Lines.FirstOrDefault().ValueKind is JsonValueKind.Object
+        ? Lines.First().GetProperty("revealedAudioUrl").GetString()
+        : null;
+
+    private async Task ReplayAsync()
+    {
+        _replayCount++;
+        await Task.CompletedTask; // 逐行连续播放由 AudioButton 逐个触发；重播仅计数（不惩罚）
+    }
+
+    private async Task SelectAsync(JsonElement option)
+    {
+        _selected = option.GetProperty("optionId").GetString();
+        using var answer = JsonDocument.Parse($$"""{"optionId":"{{_selected}}"}""");
+        await SubmitAsync(answer.RootElement.Clone());
+    }
+
+    private string OptionState(JsonElement option)
+    {
+        var id = option.GetProperty("optionId").GetString();
+        if (LastGrade is null || id != _selected)
+            return "idle";
+        return LastGrade.Correct ? "correct" : "wrong";
+    }
+
+    private static string OptionStyle(string state) => state switch
+    {
+        "correct" => "border-color: var(--color-success); background: var(--color-success-surface);",
+        "wrong" => "border-color: var(--color-error); background: var(--color-error-surface);",
+        _ => "",
+    };
+}

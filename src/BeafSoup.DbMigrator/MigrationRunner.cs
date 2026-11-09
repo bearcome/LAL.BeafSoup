@@ -1,4 +1,7 @@
 using BeafSoup.Content.EntityFrameworkCore;
+using BeafSoup.Exercises.EntityFrameworkCore;
+using BeafSoup.Learning.EntityFrameworkCore;
+using BeafSoup.Identity.EntityFrameworkCore;
 using BeafSoup.Localization.EntityFrameworkCore;
 using BeafSoup.Vocabulary.EntityFrameworkCore;
 using Microsoft.Data.Sqlite;
@@ -32,7 +35,19 @@ public static class MigrationRunner
             connectionString, "__EFMigrationsHistory_Content")))
             await context.Database.MigrateAsync();
 
-        Console.WriteLine("迁移完成：Localization / Vocabulary / Content。");
+        await using (var context = new IdentityDbContext(CreateOptions<IdentityDbContext>(
+            connectionString, "__EFMigrationsHistory_Identity")))
+            await context.Database.MigrateAsync();
+
+        await using (var context = new LearningDbContext(CreateOptions<LearningDbContext>(
+            connectionString, "__EFMigrationsHistory_Learning")))
+            await context.Database.MigrateAsync();
+
+        await using (var context = new ExercisesDbContext(CreateOptions<ExercisesDbContext>(
+            connectionString, "__EFMigrationsHistory_Exercises")))
+            await context.Database.MigrateAsync();
+
+        Console.WriteLine("迁移完成：Localization / Vocabulary / Content / Identity / Learning / Exercises。");
     }
 
     public static DbContextOptions<T> CreateOptions<T>(string connectionString, string migrationsHistoryTable)

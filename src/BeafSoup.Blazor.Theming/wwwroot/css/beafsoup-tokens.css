@@ -1,0 +1,131 @@
+/* BeafSoup 主题令牌：组件只消费语义令牌，禁止硬编码颜色（ui-theming-responsive.md）。
+   亮/暗双主题文字与交互元素对比度按 WCAG AA 设计。 */
+
+:root {
+  color-scheme: light;
+  --color-surface-base: #ffffff;
+  --color-surface-raised: #f7f7f8;
+  --color-surface-overlay: #ffffff;
+  --color-text-primary: #1f2328;
+  --color-text-secondary: #59636e;
+  --color-text-inverse: #ffffff;
+  --color-primary: #1a7f4b;
+  --color-primary-hover: #14663c;
+  --color-primary-contrast: #ffffff;
+  --color-success: #1a7f4b;
+  --color-warning: #9a6700;
+  --color-error: #d1242f;
+  --color-error-surface: #ffebe9;
+  --color-success-surface: #dafbe1;
+  --color-popover: #ffffff;
+  --color-border: #d1d9e0;
+  --shadow-popover: 0 8px 24px rgba(31, 35, 40, 0.18);
+  --shadow-card: 0 1px 3px rgba(31, 35, 40, 0.12);
+  --radius-small: 6px;
+  --radius-medium: 12px;
+  --radius-large: 20px;
+  --spacing-1: 4px;
+  --spacing-2: 8px;
+  --spacing-3: 12px;
+  --spacing-4: 16px;
+  --spacing-6: 24px;
+  --spacing-8: 32px;
+  --font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --font-size-body: 16px;
+  --font-size-small: 13px;
+  --font-size-title: 22px;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --color-surface-base: #0d1117;
+  --color-surface-raised: #161b22;
+  --color-surface-overlay: #1c2128;
+  --color-text-primary: #e6edf3;
+  --color-text-secondary: #9198a1;
+  --color-text-inverse: #0d1117;
+  --color-primary: #3fb950;
+  --color-primary-hover: #56d364;
+  --color-primary-contrast: #0d1117;
+  --color-success: #3fb950;
+  --color-warning: #d29922;
+  --color-error: #f85149;
+  --color-error-surface: #3d1512;
+  --color-success-surface: #12261e;
+  --color-popover: #1c2128;
+  --color-border: #30363d;
+  --shadow-popover: 0 8px 24px rgba(0, 0, 0, 0.55);
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+/* ---- 基础排版与触摸目标（手机 ≥44×44px）---- */
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-family);
+  font-size: var(--font-size-body);
+  background: var(--color-surface-base);
+  color: var(--color-text-primary);
+}
+
+button, a.button-link, input, select {
+  min-height: 44px;
+  font: inherit;
+}
+
+/* ---- 响应式断点：<576px 手机、≥768px 平板、≥1200px 桌面 ---- */
+.exercise-container {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: var(--spacing-4);
+}
+
+.skill-tree-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--spacing-4);
+}
+
+@media (min-width: 768px) {
+  .skill-tree-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1200px) {
+  .skill-tree-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.app-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-2);
+  padding: var(--spacing-3) var(--spacing-4);
+  background: var(--color-surface-raised);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.card {
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-medium);
+  box-shadow: var(--shadow-card);
+  padding: var(--spacing-6);
+}
+
+/* ---- 弹层：纯覆盖层，绝不引发回流（word-inspector-popover.md 不可协商约束）---- */
+.popover-overlay {
+  position: fixed;
+  z-index: 1000;
+  background: var(--color-popover);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-medium);
+  box-shadow: var(--shadow-popover);
+  padding: var(--spacing-4);
+  max-width: min(92vw, 420px);
+  max-height: 70vh;
+  overflow: auto;
+}

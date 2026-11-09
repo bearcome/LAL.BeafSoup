@@ -8,6 +8,7 @@
     <ProjectReference Include="../../src/BeafSoup.SharedKernel/BeafSoup.SharedKernel.csproj" />
     <ProjectReference Include="../../src/Modules/Localization/BeafSoup.Localization.Domain/BeafSoup.Localization.Domain.csproj" />
     <ProjectReference Include="../../src/Modules/Localization/BeafSoup.Localization.Domain.Shared/BeafSoup.Localization.Domain.Shared.csproj" />
+    <ProjectReference Include="../../src/Modules/Localization/BeafSoup.Localization.Application.Contracts/BeafSoup.Localization.Application.Contracts.csproj" />
     <ProjectReference Include="../../src/Modules/Vocabulary/BeafSoup.Vocabulary.Domain/BeafSoup.Vocabulary.Domain.csproj" />
     <ProjectReference Include="../../src/Modules/Vocabulary/BeafSoup.Vocabulary.Domain.Shared/BeafSoup.Vocabulary.Domain.Shared.csproj" />
     <ProjectReference Include="../../src/Modules/Content/BeafSoup.Content.Domain/BeafSoup.Content.Domain.csproj" />
@@ -17,5 +18,12 @@
     <ProjectReference Include="../../src/Modules/Audio/BeafSoup.Audio.Domain.Shared/BeafSoup.Audio.Domain.Shared.csproj" />
     <ProjectReference Include="../../src/Modules/Learning/BeafSoup.Learning.Domain/BeafSoup.Learning.Domain.csproj" />
     <ProjectReference Include="../../src/Modules/Learning/BeafSoup.Learning.Domain.Shared/BeafSoup.Learning.Domain.Shared.csproj" />
+    <ProjectReference Include="../../src/Modules/Identity/BeafSoup.Identity.Domain/BeafSoup.Identity.Domain.csproj" />
+    <ProjectReference Include="../../src/Modules/Identity/BeafSoup.Identity.Domain.Shared/BeafSoup.Identity.Domain.Shared.csproj" />
+    <ProjectReference Include="../../src/Modules/Identity/BeafSoup.Identity.Application.Contracts/BeafSoup.Identity.Application.Contracts.csproj" />
+    <ProjectReference Include="../../src/Modules/UsageAnalytics/BeafSoup.UsageAnalytics.Domain/BeafSoup.UsageAnalytics.Domain.csproj" />
+    <ProjectReference Include="../../src/Modules/UsageAnalytics/BeafSoup.UsageAnalytics.Domain.Shared/BeafSoup.UsageAnalytics.Domain.Shared.csproj" />
+    <ProjectReference Include="../../src/Modules/UsageAnalytics/BeafSoup.UsageAnalytics.Application.Contracts/BeafSoup.UsageAnalytics.Application.Contracts.csproj" />
+    <ProjectReference Include="../../src/BeafSoup.Blazor.Shared/BeafSoup.Blazor.Shared.csproj" />
   </ItemGroup>
 </Project>

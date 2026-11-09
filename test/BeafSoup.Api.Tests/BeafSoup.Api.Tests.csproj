@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="FluentAssertions" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+    <ProjectReference Include="../../src/BeafSoup.HttpApi.Host/BeafSoup.HttpApi.Host.csproj" />
+    <ProjectReference Include="../../src/Modules/Identity/BeafSoup.Identity.Application.Contracts/BeafSoup.Identity.Application.Contracts.csproj" />
+    <ProjectReference Include="../../src/Modules/UsageAnalytics/BeafSoup.UsageAnalytics.Application.Contracts/BeafSoup.UsageAnalytics.Application.Contracts.csproj" />
+    <ProjectReference Include="../../src/Modules/Localization/BeafSoup.Localization.Application.Contracts/BeafSoup.Localization.Application.Contracts.csproj" />
+    <ProjectReference Include="../../src/Modules/Content/BeafSoup.Content.Application.Contracts/BeafSoup.Content.Application.Contracts.csproj" />
+    <ProjectReference Include="../../src/Modules/Exercises/BeafSoup.Exercises.Domain/BeafSoup.Exercises.Domain.csproj" />
+    <ProjectReference Include="../../src/Modules/Exercises/BeafSoup.Exercises.Domain.Shared/BeafSoup.Exercises.Domain.Shared.csproj" />
+    <ProjectReference Include="../../src/Modules/Exercises/BeafSoup.Exercises.Application.Contracts/BeafSoup.Exercises.Application.Contracts.csproj" />
+    <ProjectReference Include="../../src/Modules/Learning/BeafSoup.Learning.Domain/BeafSoup.Learning.Domain.csproj" />
+    <ProjectReference Include="../../src/Modules/Learning/BeafSoup.Learning.Application.Contracts/BeafSoup.Learning.Application.Contracts.csproj" />
+    <ProjectReference Include="../../src/BeafSoup.DbMigrator/BeafSoup.DbMigrator.csproj" />
+  </ItemGroup>
+</Project>

@@ -9,6 +9,10 @@
     <ProjectReference Include="../Modules/Localization/BeafSoup.Localization.EntityFrameworkCore/BeafSoup.Localization.EntityFrameworkCore.csproj" />
     <ProjectReference Include="../Modules/Vocabulary/BeafSoup.Vocabulary.EntityFrameworkCore/BeafSoup.Vocabulary.EntityFrameworkCore.csproj" />
     <ProjectReference Include="../Modules/Content/BeafSoup.Content.EntityFrameworkCore/BeafSoup.Content.EntityFrameworkCore.csproj" />
+    <ProjectReference Include="../Modules/Identity/BeafSoup.Identity.EntityFrameworkCore/BeafSoup.Identity.EntityFrameworkCore.csproj" />
+    <ProjectReference Include="../Modules/Audio/BeafSoup.Audio.Domain/BeafSoup.Audio.Domain.csproj" />
+    <ProjectReference Include="../Modules/Learning/BeafSoup.Learning.EntityFrameworkCore/BeafSoup.Learning.EntityFrameworkCore.csproj" />
+    <ProjectReference Include="../Modules/Exercises/BeafSoup.Exercises.EntityFrameworkCore/BeafSoup.Exercises.EntityFrameworkCore.csproj" />
     <!-- 复用种子加载与领域校验（SeedLoader/SeedValidator），避免第二份种子映射逻辑 -->
     <ProjectReference Include="../BeafSoup.Audio.Generation/BeafSoup.Audio.Generation.csproj" />
   </ItemGroup>

@@ -1,0 +1,17 @@
+@using BeafSoup.Exercises
+@inject IUiTextProvider UiText
+
+@* 判分反馈横幅：答错显示错误反馈（留在当前题可重试），答对由父级自动推进。 *@
+@if (Grade is { } grade)
+{
+    <div role="status" style="margin-top: var(--spacing-4); padding: var(--spacing-3); border-radius: var(--radius-small);
+         @(grade.Correct
+             ? "border: 1px solid var(--color-success); background: var(--color-success-surface);"
+             : "border: 1px solid var(--color-error); background: var(--color-error-surface);")">
+        @UiText.Text(grade.Correct ? "ui.exercise.correct" : "ui.exercise.wrong")
+    </div>
+}
+
+@code {
+    [Parameter] public GradeAnswerResponse? Grade { get; set; }
+}

@@ -5,6 +5,8 @@
     <!-- 离线生成工具允许引用各模块 Domain；它不是 Blazor 客户端，也不进入 WASM 产物 -->
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../Modules/Exercises/BeafSoup.Exercises.Domain/BeafSoup.Exercises.Domain.csproj" />
+    <ProjectReference Include="../Modules/Exercises/BeafSoup.Exercises.Domain.Shared/BeafSoup.Exercises.Domain.Shared.csproj" />
     <InternalsVisibleTo Include="BeafSoup.Audio.Generation.Tests" />
   </ItemGroup>
   <ItemGroup>

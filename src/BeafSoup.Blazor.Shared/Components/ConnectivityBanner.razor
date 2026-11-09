@@ -1,0 +1,16 @@
+@inject IConnectivityState Connectivity
+@inject IUiTextProvider UiText
+@implements IDisposable
+
+@if (!Connectivity.ApiAvailable)
+{
+    <div class="card" role="alert" style="border-color: var(--color-error); color: var(--color-error);">
+        @UiText.Text("ui.common.error.unavailable")
+    </div>
+}
+
+@code {
+    protected override void OnInitialized() => Connectivity.Changed += OnChanged;
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+    public void Dispose() => Connectivity.Changed -= OnChanged;
+}

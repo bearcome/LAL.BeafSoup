@@ -1,0 +1,100 @@
+@using System.Text.Json
+@inherits GradedExerciseBase
+@inject IUiTextProvider UiText
+
+@* 补全对话：音频播放补全后的完整台词（绝不朗读说话人标签——标签仅展示）；按负载 responseMode 选择或输入。 *@
+<div class="card">
+    <div style="display:flex; gap: var(--spacing-2);">
+        <AudioButton Url="@FirstRevealedAudio" />
+    </div>
+    @foreach (var line in Lines)
+    {
+        <div style="margin-top: var(--spacing-3);">
+            <strong>@(line.GetProperty("speakerLabel").GetString()):</strong>
+            @if (line.TryGetProperty("blank", out var blank))
+            {
+                <ClickableSentence Text="@line.GetProperty("text").GetString()"
+                                   BlankStart="@blank.GetProperty("start").GetInt32()"
+                                   BlankLength="@blank.GetProperty("length").GetInt32()" />
+            }
+            else
+            {
+                <ClickableSentence Text="@line.GetProperty("text").GetString()" BlankStart="0" BlankLength="0" />
+            }
+        </div>
+    }
+
+    @if (IsChoice)
+    {
+        <div style="display:grid; gap: var(--spacing-2); margin-top: var(--spacing-4);">
+            @foreach (var option in BlankOptions)
+            {
+                var state = OptionState(option);
+                <button style="@OptionStyle(state)" disabled="@(state is "correct")"
+                        @onclick="() => SelectAsync(option)">
+                    @(option.GetProperty("text").GetString())
+                </button>
+            }
+        </div>
+    }
+    else
+    {
+        <EditForm Model="_model" OnValidSubmit="SubmitInputAsync" style="margin-top: var(--spacing-4); display:flex; gap: var(--spacing-2);">
+            <InputText @bind-Value="_model.Text" placeholder="@UiText.Text("ui.exercise.type-hint")"
+                       style="flex:1;" autocomplete="off" />
+            <button type="submit" disabled="@GradingInProgress">@UiText.Text("ui.exercise.check")</button>
+        </EditForm>
+    }
+    <FeedbackBanner Grade="LastGrade" />
+</div>
+
+@code {
+    private readonly InputModel _model = new();
+    private string? _selected;
+
+    private IEnumerable<JsonElement> Lines => Payload.GetProperty("lines").EnumerateArray();
+    private bool IsChoice => string.Equals(Payload.GetProperty("responseMode").GetString(), "Choice", StringComparison.OrdinalIgnoreCase);
+    private JsonElement Blank => Lines.Select(l => l.TryGetProperty("blank", out var b) ? b : default)
+        .First(b => b.ValueKind is JsonValueKind.Object);
+    private IEnumerable<JsonElement> BlankOptions => Blank.GetProperty("options").EnumerateArray();
+    private string? FirstRevealedAudio => Lines.FirstOrDefault().ValueKind is JsonValueKind.Object
+        ? Lines.First().GetProperty("revealedAudioUrl").GetString()
+        : null;
+
+    private async Task SelectAsync(JsonElement option)
+    {
+        _selected = option.GetProperty("optionId").GetString();
+        var lineIndex = Lines.Select((l, i) => (l, i)).First(t => t.l.TryGetProperty("blank", out _)).i;
+        using var answer = JsonDocument.Parse($$"""{"lineIndex":{{lineIndex}},"optionId":"{{_selected}}"}""");
+        await SubmitAsync(answer.RootElement.Clone());
+    }
+
+    private async Task SubmitInputAsync()
+    {
+        var lineIndex = Lines.Select((l, i) => (l, i)).First(t => t.l.TryGetProperty("blank", out _)).i;
+        using var answer = JsonDocument.Parse(JsonSerializer.Serialize(new { lineIndex, optionId = (string?)null, text = _model.Text }));
+        await SubmitAsync(answer.RootElement.Clone());
+        if (LastGrade is { Correct: false })
+            _model.Text = "";
+    }
+
+    private string OptionState(JsonElement option)
+    {
+        var id = option.GetProperty("optionId").GetString();
+        if (LastGrade is null || id != _selected)
+            return "idle";
+        return LastGrade.Correct ? "correct" : "wrong";
+    }
+
+    private static string OptionStyle(string state) => state switch
+    {
+        "correct" => "border-color: var(--color-success); background: var(--color-success-surface);",
+        "wrong" => "border-color: var(--color-error); background: var(--color-error-surface);",
+        _ => "",
+    };
+
+    private sealed class InputModel
+    {
+        public string Text { get; set; } = "";
+    }
+}

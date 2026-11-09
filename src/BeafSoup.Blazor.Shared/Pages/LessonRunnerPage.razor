@@ -1,0 +1,106 @@
+@page "/lesson/{LessonId}"
+@attribute [Authorize]
+@using BeafSoup.Content
+@using BeafSoup.Exercises
+@using BeafSoup.Learning
+@inject AppState AppState
+@inject ContentApiClient Content
+@inject ExerciseApiClient Exercises
+@inject LearningApiClient Learning
+@inject IUiTextProvider UiText
+@inject NavigationManager Navigation
+
+@if (_error)
+{
+    <div class="card" role="alert">@UiText.Text("ui.common.error.unavailable")</div>
+}
+else if (_lesson is null || _presentations is null)
+{
+    <p><T Key="ui.common.loading" /></p>
+}
+else if (_finished)
+{
+    @* 课时结束总结 *@
+    <div class="card">
+        <h1><T Key="ui.lesson.completed" /></h1>
+        <h2><T Key="ui.lesson.summary" /></h2>
+        <p>@UiText.Text("ui.progress.xp"): @_xpGained</p>
+        <a class="button-link" href="/tree"><T Key="ui.nav.tree" /></a>
+    </div>
+}
+else
+{
+    <ProgressHeader />
+    <p>@UiText.Text(_lesson.TitleKey) · @(_currentIndex + 1)/@_presentations.Count</p>
+    @* 逐题显示：页面只渲染当前题，不展示后续题目 *@
+    <ExerciseView Presentation="_presentations[_currentIndex]"
+                  LessonId="_lesson.LessonId"
+                  OnSolved="OnSolvedAsync" />
+}
+
+@code {
+    [Parameter] public string LessonId { get; set; } = "";
+
+    private LessonContentDto? _lesson;
+    private List<ExercisePresentationDto>? _presentations;
+    private int _currentIndex;
+    private bool _finished;
+    private int _xpGained;
+    private int _xpBaseline = -1;
+    private bool _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (AppState.CurrentProfile is null && AuthenticationState is not null)
+            {
+                var auth = await AuthenticationState;
+                var userId = auth.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (userId is not null)
+                    await AppState.EnsureProfileAsync(Guid.Parse(userId), CancellationToken.None);
+            }
+            if (AppState.Progress is not null)
+                _xpBaseline = AppState.Progress.Xp;
+            _lesson = await Content.GetLessonContentAsync(LessonId, CancellationToken.None);
+            if (_lesson is null)
+            {
+                _error = true;
+                return;
+            }
+            _presentations = (await Exercises.GetPresentationsAsync(
+                _lesson.Exercises.Select(e => e.ExerciseInstanceId).ToArray(), CancellationToken.None)).ToList();
+        }
+        catch (HttpRequestException)
+        {
+            _error = true;
+        }
+    }
+
+    [CascadingParameter] private Task<AuthenticationState>? AuthenticationState { get; set; }
+
+    private async Task OnSolvedAsync(GradeAnswerResponse response)
+    {
+        // 答对后自动进入下一题，无需额外点击继续
+        await Task.Delay(600);
+        if (_xpBaseline >= 0)
+            _xpGained = Math.Max(_xpGained, response.Progress.Xp - _xpBaseline);
+        if (_currentIndex + 1 < _presentations!.Count)
+        {
+            _currentIndex++;
+            return;
+        }
+
+        // 课时完成：记录不可变事实（幂等），自动恢复的红心/连胜由服务端口径裁决
+        _finished = true;
+        if (AppState.CurrentProfile is not null)
+        {
+            var activityId = ExerciseApiClient.NewActivityId();
+            var completed = await Learning.SubmitAsync(AppState.CurrentProfile.Id, new SubmitActivityRequest(
+                activityId, $"lesson:{activityId}", LearningActivityType.LessonCompleted,
+                ExerciseInstanceId: null, LessonId: null, IsCorrect: true), CancellationToken.None);
+            _xpGained = completed.Progress.Xp - Math.Max(0, _xpBaseline);
+            await AppState.RefreshProgressAsync(CancellationToken.None);
+        }
+    }
+}

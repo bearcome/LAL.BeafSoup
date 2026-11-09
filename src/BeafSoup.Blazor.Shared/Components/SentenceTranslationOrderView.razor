@@ -1,0 +1,55 @@
+@using System.Text.Json
+@inherits GradedExerciseBase
+@inject IUiTextProvider UiText
+
+@* 翻译排序题：题干 = 基础语言句子；词块各使用一次、实例 ID 顺序完全一致才判对（标点随所属词块）。 *@
+<div class="card">
+    <h2>@(Payload.GetProperty("promptText").GetString())</h2>
+    <div style="min-height: 3em; border-bottom: 2px solid var(--color-border); display:flex; flex-wrap:wrap; gap: var(--spacing-2); padding-bottom: var(--spacing-2);">
+        @foreach (var chunk in _ordered)
+        {
+            <button @onclick="() => Return(chunk)">@ChunkText(Chunks.First(c => ChunkId(c) == chunk))</button>
+        }
+    </div>
+    <div style="display:flex; flex-wrap:wrap; gap: var(--spacing-2); margin-top: var(--spacing-4);">
+        @foreach (var chunk in Chunks.Where(c => !_ordered.Contains(ChunkId(c))))
+        {
+            <button @onclick="() => Pick(chunk)">@ChunkText(chunk)</button>
+        }
+    </div>
+    <button style="margin-top: var(--spacing-4);" disabled="@(_ordered.Count < Chunks.Count() || GradingInProgress)"
+            @onclick="SubmitOrderAsync">
+        @UiText.Text("ui.exercise.check")
+    </button>
+    <FeedbackBanner Grade="LastGrade" />
+</div>
+
+@code {
+    private readonly List<string> _ordered = [];
+
+    private IEnumerable<JsonElement> Chunks => Payload.GetProperty("chunks").EnumerateArray();
+    private static string ChunkId(JsonElement chunk) => chunk.GetProperty("chunkId").GetString() ?? "";
+    private static string ChunkText(JsonElement chunk) => chunk.GetProperty("text").GetString() ?? "";
+
+    private void Pick(JsonElement chunk)
+    {
+        _ordered.Add(ChunkId(chunk));
+        if (LastGrade is { Correct: false })
+            ClearFeedback(); // 修改排列后重试
+    }
+
+    private void Return(string chunkId)
+    {
+        _ordered.Remove(chunkId);
+        if (LastGrade is { Correct: false })
+            ClearFeedback();
+    }
+
+    private async Task SubmitOrderAsync()
+    {
+        using var answer = JsonDocument.Parse(JsonSerializer.Serialize(new { chunkIds = _ordered }));
+        await SubmitAsync(answer.RootElement.Clone());
+        if (LastGrade is { Correct: true })
+            _ordered.Clear();
+    }
+}

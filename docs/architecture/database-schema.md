@@ -118,6 +118,61 @@
 - `lessons`：`Id` PK，`SkillUnitId` FK 级联，`Ordinal` 单元内保序，`TitleKey`。
 - `lesson_exercises`：主键 `(LessonId, Ordinal)`；`ExerciseInstanceId` Guid + `ExerciseTypeKey`（题型注册表键）；习题负载由 Exercises 模块（第 4 阶段）校验。
 
+## Identity 模块（`IdentityDbContext`，第 3 阶段）
+
+### `user_accounts` — 用户账户
+
+| 列 | 类型 | 说明 |
+|---|---|---|
+| `Id` | TEXT PK | 稳定 UserId |
+| `Status` | TEXT | `Active`/`Disabled`/`Deleted`（删除为标记删除，注册事实保留） |
+| `RegisteredAtUtc` | TEXT | UTC 注册时间 |
+| `IsTest` | INTEGER | 测试账户（排除出累计注册数与有效账户数） |
+
+### `user_identity_links` — 身份关联
+
+主键 `(Provider, ProviderUserId)`；`UserId` 索引。登录身份在提供方范围内唯一并映射到 UserId；同一账户可挂多个提供方。
+
+### `user_credentials` — 凭据散列（第 3 阶段，password 提供方）
+
+主键 `(Provider, ProviderUserId)`；`Hash` 为 PBKDF2-SHA256 散列（格式 `v1.<迭代>.<salt>.<hash>`）。凭据绝不进入领域对象或日志；提供方边界见 ADR-006。
+
+### `user_registered_events` — 注册事实事件
+
+`EventId` PK：服务端成功接受的 `UserRegistered` 事件，按稳定事件 ID 去重；累计注册数的权威来源。
+
+### `user_sessions` — 服务端会话记录
+
+`SessionId` PK；`UserId` 索引；`LastHeartbeatAtUtc` 索引。在线判据 = `LastHeartbeatAtUtc + LeaseTtl`（ADR-007）；`AccumulatedOnlineSeconds` 按 `min(心跳间隔, MaxTimingWindow)` 累计，超窗不追补；`EndedAtUtc`/`EndReason`（`Ended`/`Revoked`，租约过期为派生态不落库）。每账户最多一个有效交互会话（新登录顶替旧会话）。
+
+## Learning 模块（`LearningDbContext`，第 4 阶段）
+
+### `learner_profiles` — 学习配置
+
+`Id` PK；`UserId` 索引；`BaseLanguage`/`TargetLanguage`（BCP-47 原文）；`TargetRetentionRate` REAL；`ThemePreference`/`InflectionDisplay`（`Common`/`Full`）/`InspectorTrigger`（`Click`/`Hover`）。
+
+### `review_cards` — FSRS 复习卡
+
+主键 `(ProfileId, ConceptId)`：学习单位是概念，词元/形态不重复建卡；`Status`（`New`/`Learning`/`Review`/`Relearning`）；`DueUtc` 索引（到期队列）；`Stability`/`Difficulty` REAL；`SchedulingVersion` INTEGER（参数升级迁移用，ADR-003）。
+
+### `form_mastery` — 形态掌握度
+
+主键 `(ProfileId, CellId)`；`CorrectCount`/`IncorrectCount`；`LastSeenAtUtc`。仅明确关联 `ParadigmCellId` 的判分结果更新。
+
+### `learning_activities` — 学习活动事实
+
+`Id` PK；`(ProfileId, DedupeKey)` 唯一索引（重试/重放幂等）；`Type`（`GradedAnswer`/`ReviewSubmitted`/`LessonCompleted`）；`IsCorrect`（答错不奖励经验，但不扣已得奖励）；`ExerciseInstanceId`/`LessonId` 可空。
+
+### `learner_progress_states` — 游戏化状态
+
+`ProfileId` PK；`Hearts`（上限 5，自动恢复 1 心/30 分钟，下限 0）；`LastHeartChangeAtUtc`；`LastActivityDateUtc`；`DayStreak`（UTC 连续日口径）。
+
+## Exercises 模块（`ExercisesDbContext`，第 4 阶段）
+
+### `exercise_instances` — 习题实例
+
+`Id` PK（由种子习题键确定性生成）；`TypeKey`（题型注册表键，索引）；`PayloadVersion` INTEGER；`PayloadJson`（版本化负载，下发前经 handler 校验，未知键/版本明确失败）；`Difficulty` INTEGER；`HintKey` 可空。课时引用见 Content 模块 `lesson_exercises`。
+
 ## 运维
 
 - 迁移由 `src/BeafSoup.DbMigrator` 显式执行：`migrate`（仅迁移）、`seed`（迁移 + 空库填充，`--force` 替换内容表）、`reset`（删库重建）。应用运行期不自动迁移。

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BeafSoup</title>
+    <base href="/" />
+    <!-- 主题无闪烁初始化：先于 Blazor 启动读取缓存偏好并预置 data-theme -->
+    <script>
+        (function () {
+            var preference = null;
+            try { preference = window.localStorage.getItem("beafsoup.theme-preference"); } catch (e) { }
+            var theme = preference === "Light" ? "light"
+                : preference === "Dark" ? "dark"
+                : (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+            document.documentElement.setAttribute("data-theme", theme);
+        })();
+    </script>
+    <link rel="stylesheet" href="_content/BeafSoup.Blazor.Theming/css/beafsoup-tokens.css" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="icon" href="icon.svg" type="image/svg+xml" />
+</head>
+<body>
+    <div id="app">
+        <span style="position: fixed; inset: 0; display: grid; place-items: center;">Loading…</span>
+    </div>
+    <script src="_framework/blazor.webassembly.js"></script>
+    <script>
+        navigator.serviceWorker?.register("service-worker.js");
+        // 音频播放桥（BL0016 防护：异常在调用侧捕获）
+        window.beafSoupAudio = {
+            play: function (element) { if (element && element.play) return element.play(); }
+        };
+    </script>
+</body>
+</html>

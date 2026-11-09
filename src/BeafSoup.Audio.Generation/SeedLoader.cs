@@ -23,6 +23,8 @@ public static class SeedLoader
             Sentences = LoadFile<List<SeedSentence>>(seedDirectory, "sentences.json"),
             Dialogues = LoadFile<List<SeedDialogue>>(seedDirectory, "dialogues.json"),
             Courses = LoadFile<List<SeedCourse>>(seedDirectory, "courses.json"),
+            UiTexts = LoadFile<List<SeedUiText>>(seedDirectory, "ui-texts.json"),
+            Exercises = LoadFile<List<SeedExercise>>(seedDirectory, "exercises.json"),
         };
         return seed;
     }

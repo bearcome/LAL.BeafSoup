@@ -1,0 +1,36 @@
+@inject IUiTextProvider UiText
+@inject IJSRuntime JsRuntime
+
+<button class="audio-button" @onclick="PlayAsync" disabled="@_playing"
+        aria-label="@UiText.Text("ui.audio.play")">
+    @UiText.Text("ui.audio.play")
+</button>
+<audio @ref="_audio" src="@Url" preload="none"
+       @onended="OnEnded" @onerror="OnEnded"></audio>
+
+@code {
+    /// <summary>音频静态资产 URL（服务端按 audio-asset-spec 预解析）。</summary>
+    [Parameter]
+    public string? Url { get; set; }
+
+    private ElementReference _audio;
+    private bool _playing;
+
+    private async Task PlayAsync()
+    {
+        if (string.IsNullOrEmpty(Url) || _playing)
+            return;
+        _playing = true;
+        try
+        {
+            await JsRuntime.InvokeVoidAsync("beafSoupAudio.play", _audio);
+        }
+        catch (InvalidOperationException)
+        {
+            // 浏览器禁止自动播放等：保持按钮可用
+            _playing = false;
+        }
+    }
+
+    private void OnEnded() => _playing = false;
+}

@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+  <ItemGroup>
+    <SupportedPlatform Include="browser" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.Web" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.Authorization" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../BeafSoup.Blazor.Theming/BeafSoup.Blazor.Theming.csproj" />
+    <ProjectReference Include="../Modules/Identity/BeafSoup.Identity.Application.Contracts/BeafSoup.Identity.Application.Contracts.csproj" />
+    <ProjectReference Include="../Modules/UsageAnalytics/BeafSoup.UsageAnalytics.Application.Contracts/BeafSoup.UsageAnalytics.Application.Contracts.csproj" />
+    <ProjectReference Include="../Modules/Content/BeafSoup.Content.Application.Contracts/BeafSoup.Content.Application.Contracts.csproj" />
+    <ProjectReference Include="../Modules/Exercises/BeafSoup.Exercises.Application.Contracts/BeafSoup.Exercises.Application.Contracts.csproj" />
+    <ProjectReference Include="../Modules/Learning/BeafSoup.Learning.Application.Contracts/BeafSoup.Learning.Application.Contracts.csproj" />
+    <ProjectReference Include="../Modules/Localization/BeafSoup.Localization.Application.Contracts/BeafSoup.Localization.Application.Contracts.csproj" />
+  </ItemGroup>
+</Project>

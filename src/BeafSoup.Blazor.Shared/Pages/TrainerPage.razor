@@ -1,0 +1,153 @@
+@page "/trainer"
+@attribute [Authorize]
+@using System.Text.Json
+@using BeafSoup.Learning
+@inject AppState AppState
+@inject LearningApiClient Learning
+@inject IDictionaryCache Dictionary
+@inject IUiTextProvider UiText
+
+<h1><T Key="ui.trainer.title" /></h1>
+<ProgressHeader />
+
+@if (AppState.CurrentProfile is null)
+{
+    <p><T Key="ui.common.loading" /></p>
+}
+else if (_queue is null)
+{
+    <p><T Key="ui.common.loading" /></p>
+}
+else if (_current is not null && _currentEntry is not null)
+{
+    @* 复习卡：正面单词（音频/词性/原型提示），背面基础语言解释 + 全部形态表，1–4 评级 *@
+    <div class="card" @onclick="() => _flipped = !_flipped" style="cursor: pointer;">
+        @if (!_flipped)
+        {
+            <h2>@DisplayWord(_currentEntry)</h2>
+            <div style="color: var(--color-text-secondary);">@_currentEntry.PartOfSpeech</div>
+            @if (PrimaryLexeme(_currentEntry) is { } lexeme && lexeme.TryGetProperty("audioUrl", out var audio))
+            {
+                <AudioButton Url="@audio.GetString()" />
+            }
+            <p style="color: var(--color-text-secondary);">@UiText.Text("ui.trainer.flip")</p>
+        }
+        else
+        {
+            <h2>@DisplayWord(_currentEntry)</h2>
+            <p>@UiText.Text("ui.trainer.definition"): <strong>@BaseLemma(_currentEntry)</strong></p>
+            @if (PrimaryLexeme(_currentEntry) is { } lexeme)
+            {
+                <div>@UiText.Text("ui.trainer.forms")</div>
+                @if (lexeme.TryGetProperty("forms", out var forms))
+                {
+                    foreach (var paradigm in forms.EnumerateObject())
+                    {
+                        <div style="margin-top: var(--spacing-2);">
+                            <div style="color: var(--color-text-secondary); font-size: var(--font-size-small);">@paradigm.Name</div>
+                            <div>@string.Join(" · ", paradigm.Value.EnumerateArray().Select(s => s.GetString()))</div>
+                        </div>
+                    }
+                }
+            }
+        }
+    </div>
+
+    @if (_flipped)
+    {
+        <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap: var(--spacing-2); margin-top: var(--spacing-4);">
+            <button @onclick="() => RateAsync(1)">@UiText.Text("ui.trainer.rate.again")</button>
+            <button @onclick="() => RateAsync(2)">@UiText.Text("ui.trainer.rate.hard")</button>
+            <button @onclick="() => RateAsync(3)">@UiText.Text("ui.trainer.rate.good")</button>
+            <button @onclick="() => RateAsync(4)">@UiText.Text("ui.trainer.rate.easy")</button>
+        </div>
+    }
+}
+else if (_queue.Count == 0)
+{
+    <div class="card">
+        <p><T Key="ui.trainer.queue-empty" /></p>
+        <button @onclick="EnqueueNewAsync" disabled="@_enqueueing">@UiText.Text("ui.trainer.load-new")</button>
+    </div>
+}
+else
+{
+    <div class="card">@UiText.Text("ui.common.loading")</div>
+}
+
+@code {
+    private IReadOnlyList<ReviewQueueItemDto>? _queue;
+    private DictionaryEntry? _currentEntry;
+    private ReviewQueueItemDto? _current;
+    private bool _flipped;
+    private bool _enqueueing;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Dictionary.EnsureLoadedAsync(CancellationToken.None);
+        await LoadQueueAsync();
+    }
+
+    private async Task LoadQueueAsync()
+    {
+        if (AppState.CurrentProfile is null)
+            return;
+        _queue = await Learning.GetDueQueueAsync(AppState.CurrentProfile.Id, limit: 50, CancellationToken.None);
+        _current = _queue.FirstOrDefault();
+        _currentEntry = _current is null ? null : Dictionary.FindById(_current.ConceptId);
+        _flipped = false;
+    }
+
+    private async Task EnqueueNewAsync()
+    {
+        if (AppState.CurrentProfile is null || _enqueueing)
+            return;
+        _enqueueing = true;
+        try
+        {
+            // 新卡候选由客户端从概念词典挑选（模块边界：Learning 不查词表），服务端按每日预算与既有卡过滤
+            var candidates = Dictionary.AllEntries.Select(e => e.ConceptId).ToArray();
+            await Learning.EnqueueNewCardsAsync(AppState.CurrentProfile.Id, candidates, CancellationToken.None);
+            await LoadQueueAsync();
+        }
+        finally
+        {
+            _enqueueing = false;
+        }
+    }
+
+    private async Task RateAsync(int rating)
+    {
+        if (AppState.CurrentProfile is null || _current is null)
+            return;
+        var activityId = Guid.NewGuid();
+        await Learning.RateAsync(AppState.CurrentProfile.Id, new RateReviewRequest(
+            _current.ConceptId, rating, activityId, CellId: null, IsCorrect: rating > 1), CancellationToken.None);
+        await AppState.RefreshProgressAsync(CancellationToken.None);
+        await LoadQueueAsync();
+    }
+
+    private string TargetLanguage => AppState.CurrentProfile?.TargetLanguage ?? "de-DE";
+    private string BaseLanguage => AppState.CurrentProfile?.BaseLanguage ?? "zh-CN";
+
+    private JsonElement PrimaryLexeme(DictionaryEntry entry)
+        => entry.ByLanguage.TryGetValue(TargetLanguage, out var language)
+            ? language.GetProperty("lexemes").EnumerateArray().FirstOrDefault(l => l.GetProperty("isPrimary").GetBoolean())
+            : default;
+
+    private string DisplayWord(DictionaryEntry entry)
+    {
+        var lexeme = PrimaryLexeme(entry);
+        if (lexeme.ValueKind is not JsonValueKind.Object)
+            return entry.ConceptKey;
+        return lexeme.TryGetProperty("displayWord", out var display)
+            ? display.GetString() ?? entry.ConceptKey
+            : lexeme.GetProperty("lemma").GetString() ?? entry.ConceptKey;
+    }
+
+    private string BaseLemma(DictionaryEntry entry)
+        => entry.ByLanguage.TryGetValue(BaseLanguage, out var language)
+            ? language.GetProperty("lexemes").EnumerateArray()
+                .First(l => l.GetProperty("isPrimary").GetBoolean()).GetProperty("lemma").GetString() ?? ""
+            : "";
+}

@@ -1,0 +1,70 @@
+@using System.Text
+@* 句子渲染：词级可点击（点词弹层），空位渲染为占位；不复制数据层之外的文本逻辑。 *@
+<span>
+    @foreach (var segment in Segments)
+    {
+        if (segment.IsBlank)
+        {
+            <span style="letter-spacing: 2px; color: var(--color-text-secondary);">@segment.Text</span>
+        }
+        else if (segment.IsWord)
+        {
+            <WordInspector Text="@segment.Text" Language="@Language" />
+        }
+        else
+        {
+            @segment.Text
+        }
+    }
+</span>
+
+@code {
+    [Parameter, EditorRequired] public string Text { get; set; } = "";
+
+    /// <summary>句子语言（词元检索与弹层释义的目标语言）。</summary>
+    [Parameter] public string Language { get; set; } = "de-DE";
+    [Parameter] public int BlankStart { get; set; }
+    [Parameter] public int BlankLength { get; set; }
+
+    private sealed record Segment(string Text, bool IsWord, bool IsBlank);
+
+    private IEnumerable<Segment> Segments
+    {
+        get
+        {
+            var hasBlank = BlankLength > 0 && BlankStart + BlankLength <= Text.Length;
+            var spans = new List<(int Start, int End, bool Blank)>();
+            if (hasBlank)
+                spans.Add((BlankStart, BlankStart + BlankLength, true));
+
+            var position = 0;
+            while (position < Text.Length)
+            {
+                var inBlank = hasBlank && position >= BlankStart && position < BlankStart + BlankLength;
+                if (inBlank)
+                {
+                    var blankEnd = BlankStart + BlankLength;
+                    yield return new Segment(new string('_', Math.Max(2, blankEnd - BlankStart)), IsWord: false, IsBlank: true);
+                    position = blankEnd;
+                    continue;
+                }
+                // 空白/标点直接输出；连续字母（含变音符号）组成可点词
+                if (char.IsLetter(Text[position]))
+                {
+                    var start = position;
+                    while (position < Text.Length && char.IsLetter(Text[position]))
+                        position++;
+                    yield return new Segment(Text[start..position], IsWord: true, IsBlank: false);
+                }
+                else
+                {
+                    var start = position;
+                    while (position < Text.Length && !char.IsLetter(Text[position])
+                        && !(hasBlank && position >= BlankStart && position < BlankStart + BlankLength))
+                        position++;
+                    yield return new Segment(Text[start..position], IsWord: false, IsBlank: false);
+                }
+            }
+        }
+    }
+}
