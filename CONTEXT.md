@@ -22,7 +22,7 @@
 | 音频 | Azure TTS（免费额度预算）；音频为预生成的静态文件（见 `docs/domain/audio-asset-spec.md`） |
 | 样式 | CSS 自定义属性实现亮/暗主题，响应式布局（见 `docs/features/ui-theming-responsive.md`） |
 
-- 禁止在 Minimal API endpoint 或 Blazor 组件中直接写业务逻辑或数据库查询。
+- 禁止在 Controller 或 Blazor 组件中直接写业务逻辑或数据库查询。
 - 禁止把 FSRS 类型暴露到 Vocabulary.Domain 之外。
 - FSRS 类型仅属于 Learning 模块；不得向 Vocabulary、Exercises、API 或 UI 暴露算法内部状态，其他模块只使用稳定的词元/形态 ID 与调度结果契约。
 - 禁止在 Domain 层直接 new 基础设施类型（Repository、HttpClient、Cache）。

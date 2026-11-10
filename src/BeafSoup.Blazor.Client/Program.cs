@@ -24,6 +24,7 @@ builder.Services.AddScoped(_ => new HttpClient { BaseAddress = new Uri(apiBaseUr
 builder.Services.AddScoped<IThemeService, ThemeService>();
 
 // 认证状态 + 令牌缓存（浏览器存储仅为可丢弃缓存，ADR-004）
+builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<IAuthTokenStore, LocalAuthTokenStore>();
 builder.Services.AddScoped<AuthStateProvider>();
 builder.Services.AddScoped<AuthenticationStateProvider>(provider => provider.GetRequiredService<AuthStateProvider>());

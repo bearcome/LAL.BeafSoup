@@ -105,6 +105,13 @@ public sealed class IdentityAndStatisticsApiTests(ApiTestFixture fixture)
     }
 
     [Fact]
+    public async Task Health_Anonymous_ReturnsOk()
+    {
+        var client = fixture.CreateClient();
+        (await client.GetAsync("/health")).StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    [Fact]
     public async Task UnauthenticatedRequest_RejectedByFallbackPolicy()
     {
         var client = fixture.CreateClient();

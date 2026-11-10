@@ -22,7 +22,7 @@ Modules/{Module}/ 下拥有以下项目，依赖方向严格单向：
   引用本模块 Domain + Contracts。禁止引用 EntityFrameworkCore、ASP.NET Core。
 - {Module}.EntityFrameworkCore：DbContext + 仓储实现 + 映射配置。
   只引用本模块 Domain + Domain.Shared。禁止引用 Application、Contracts。
-- {Module}.HttpApi： API 端点。只引用 Contracts。
+- {Module}.HttpApi：MVC Controller API 接口。只引用 Contracts。
 
 ## 模块间规则
 - 模块间零项目引用，**唯一例外**：可以引用对方模块的 .Application.Contracts。

@@ -84,6 +84,15 @@ builder.Services.AddScoped<IReviewAppService, ReviewAppService>();
 builder.Services.AddScoped<ILearningProgressQuery, LearningProgressQuery>();
 builder.Services.AddScoped<IConceptReviewRecorder, ConceptReviewRecorder>();
 
+// MVC 控制器分布在各模块 HttpApi 程序集，由宿主显式组合。
+builder.Services.AddControllers()
+    .AddApplicationPart(typeof(IdentityController).Assembly)
+    .AddApplicationPart(typeof(LocalizationController).Assembly)
+    .AddApplicationPart(typeof(ContentController).Assembly)
+    .AddApplicationPart(typeof(ExerciseController).Assembly)
+    .AddApplicationPart(typeof(LearningController).Assembly)
+    .AddApplicationPart(typeof(UsageAnalyticsController).Assembly);
+
 // ---- 认证（JWT + 会话活性校验：sid 失效即拒绝，支持单会话顶替）----
 var jwtOptions = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>()
     ?? throw new InvalidOperationException("缺少 JWT 配置。");
@@ -163,14 +172,7 @@ app.Use(async (context, next) =>
     }
 });
 
-app.MapGet("/health", () => Results.Ok(new { status = "ok" })).AllowAnonymous();
-
-app.MapIdentityEndpoints();
-app.MapUsageAnalyticsEndpoints();
-app.MapLocalizationEndpoints();
-app.MapContentEndpoints();
-app.MapExerciseEndpoints();
-app.MapLearningEndpoints();
+app.MapControllers();
 
 app.Run();
 

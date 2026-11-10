@@ -1,0 +1,189 @@
+{
+  "concept.big": {
+    "conceptId": "377bb0e9-f65c-d799-fb53-298e2bd1ffcc",
+    "pos": "Adjective",
+    "kind": "Word",
+    "de-DE": {
+      "lexemes": [
+        {
+          "lemma": "groß",
+          "isPrimary": true,
+          "register": "Neutral",
+          "cefr": "A2",
+          "tags": [
+            "description"
+          ],
+          "forms": {
+            "comparison": [
+              "groß",
+              "größer",
+              "am größten"
+            ]
+          },
+          "audioUrl": "de-DE/groß-Mia.mp3"
+        }
+      ]
+    },
+    "zh-CN": {
+      "lexemes": [
+        {
+          "lemma": "大",
+          "isPrimary": true,
+          "register": "Common",
+          "cefr": "A1"
+        }
+      ]
+    }
+  },
+  "concept.coffee": {
+    "conceptId": "480e57db-b03b-06f0-9972-b31762fa2943",
+    "pos": "Noun",
+    "kind": "Word",
+    "de-DE": {
+      "lexemes": [
+        {
+          "lemma": "Kaffee",
+          "isPrimary": true,
+          "register": "Neutral",
+          "cefr": "A1",
+          "displayWord": "der Kaffee",
+          "article": "Der",
+          "tags": [
+            "food",
+            "daily"
+          ],
+          "forms": {
+            "declension": [
+              "Kaffee",
+              "Kaffee",
+              "Kaffee",
+              "Kaffees",
+              "Kaffees",
+              "Kaffees",
+              "Kaffees",
+              "Kaffees"
+            ]
+          },
+          "audioUrl": "de-DE/der-Kaffee-Mia.mp3"
+        }
+      ]
+    },
+    "zh-CN": {
+      "lexemes": [
+        {
+          "lemma": "咖啡",
+          "isPrimary": true,
+          "register": "Common",
+          "cefr": "A1"
+        }
+      ]
+    }
+  },
+  "concept.drink": {
+    "conceptId": "b09e8e3b-4776-10de-703b-7ecf794cec46",
+    "pos": "Verb",
+    "kind": "Word",
+    "de-DE": {
+      "lexemes": [
+        {
+          "lemma": "trinken",
+          "isPrimary": true,
+          "register": "Neutral",
+          "cefr": "A1",
+          "tags": [
+            "daily"
+          ],
+          "forms": {
+            "indicative_perfect": [
+              "habe getrunken",
+              "hast getrunken",
+              "hat getrunken",
+              "haben getrunken",
+              "habt getrunken",
+              "haben getrunken"
+            ],
+            "indicative_present": [
+              "trinke",
+              "trinkst",
+              "trinkt",
+              "trinken",
+              "trinkt",
+              "trinken"
+            ],
+            "indicative_past": [
+              "trank",
+              "trankst",
+              "trank",
+              "tranken",
+              "trankt",
+              "tranken"
+            ]
+          },
+          "audioUrl": "de-DE/trinken-Mia.mp3"
+        },
+        {
+          "lemma": "zechen",
+          "isPrimary": false,
+          "register": "Elevated",
+          "cefr": "B2",
+          "forms": {
+            "indicative_present": [
+              "zeche",
+              "zechst",
+              "zecht",
+              "zechen",
+              "zecht",
+              "zechen"
+            ]
+          },
+          "audioUrl": "de-DE/zechen-Mia.mp3"
+        }
+      ]
+    },
+    "zh-CN": {
+      "lexemes": [
+        {
+          "lemma": "喝",
+          "isPrimary": true,
+          "register": "Common",
+          "cefr": "A1"
+        },
+        {
+          "lemma": "饮",
+          "isPrimary": false,
+          "register": "Literary",
+          "cefr": "A1"
+        }
+      ]
+    }
+  },
+  "concept.guten.tag": {
+    "conceptId": "d5935df7-9ec6-dbca-7f73-9684fed9b970",
+    "pos": "Other",
+    "kind": "Phrase",
+    "de-DE": {
+      "lexemes": [
+        {
+          "lemma": "guten_Tag",
+          "isPrimary": true,
+          "register": "Neutral",
+          "cefr": "A1",
+          "tags": [
+            "greeting"
+          ],
+          "audioUrl": "de-DE/guten-Tag-Mia.mp3"
+        }
+      ]
+    },
+    "zh-CN": {
+      "lexemes": [
+        {
+          "lemma": "你好",
+          "isPrimary": true,
+          "register": "Common",
+          "cefr": "A1"
+        }
+      ]
+    }
+  }
+}

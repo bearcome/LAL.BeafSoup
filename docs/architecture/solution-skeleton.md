@@ -57,7 +57,7 @@ LAL.BeafSoup.sln
 
 - 新建 Identity / UsageAnalytics 模块：Identity 为完整六层（Domain.Shared/Domain/Application.Contracts/Application/EntityFrameworkCore/HttpApi）；UsageAnalytics 无 EF 层（在线/时长为 Identity 权威事实之上的只读投影，计算即投影、天然可重建）。
 - Localization 补 Application.Contracts/Application/HttpApi（UI 文案与内容标题目录，`ui` + `content` 两个 domain）。
-- 新建 `BeafSoup.HttpApi.Host`（唯一组合宿主：JWT Bearer + sid 会话活性校验、统计权限默认拒绝、CORS、领域异常 → 稳定错误码）。
+- 新建 `BeafSoup.HttpApi.Host`（唯一组合宿主：组合各模块 MVC Controller、JWT Bearer + sid 会话活性校验、统计权限默认拒绝、CORS、领域异常 → 稳定错误码）。
 - 新建 `BeafSoup.Blazor.Client`（WASM 独立入口）/ `BeafSoup.Blazor.Shared`（页面、组件、ApiClient——只实现 Contracts 接口）/ `BeafSoup.Blazor.Theming`（主题令牌 + 主题服务）。WASM 兼容引用使用 `Microsoft.AspNetCore.Components.Web(.Authorization)` 包（不用 FrameworkReference，否则 browser-wasm RID 冲突）。
 - 新增 NuGet 依赖（变更理由）：`Microsoft.AspNetCore.Authentication.JwtBearer`（令牌校验属安全敏感路径，不自研；与既有 Microsoft 系依赖同发布列车 10.0.14）、`Microsoft.IdentityModel.JsonWebTokens`（JWT 签发）、`Microsoft.AspNetCore.Mvc.Testing`（API 集成测试宿主，标准测试设施）、`Microsoft.AspNetCore.Components.Web[.Authorization]`（WASM 客户端库引用）。口令散列未引依赖：PBKDF2-SHA256 直接用 BCL `Rfc2898DeriveBytes`。
 - 已知坑（沿用第 2 阶段）：`dotnet sln add` 对 `.slnx` 误写条目，新增项目手工编辑解决方案文件。

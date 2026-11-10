@@ -7,7 +7,7 @@
 - **长期目标**：一个语义/一个单词对应 **N 种语言**；新增一门语言只是"数据 + 模块配置"的工作，而不是重写代码。
 - **长期目标**：一个语义/一个单词对应 **N 种语言**；已有语言处理器覆盖时可通过数据与配置扩展，新的书写系统或形态规则须先实现并验证对应处理器。
 
-> 仓库当前处于 **第 0 阶段——仅有文档与骨架，尚无任何正式代码**。
+> 仓库已完成第 1–4 阶段，当前进入第 5 阶段（模拟考试、加固、第二门语言验证）。
 
 ## 仓库结构
 
@@ -16,9 +16,49 @@
 ├── CONTEXT.md           # 项目背景：愿景、技术栈、当前阶段、关键决策
 ├── docs/                # 全部设计文档（架构 / 领域 / 功能 / 规范）
 ├── media/               # 静态媒体资源（文档配图、示例音频等）
-├── src/                 # 未来源码目录（按设计目前刻意留空）
-└── test/                # 未来测试目录（按设计目前刻意留空）
+├── src/                 # 解决方案与各模块源码
+└── test/                # 领域、持久化、架构与 API 集成测试
 ```
+
+## 本地启动
+
+前置条件：安装支持 `net11.0` 的 .NET 11 SDK。以下命令块均从**仓库根目录**开始执行；服务端与客户端使用两个独立终端。进入各项目目录后再运行 `dotnet run`，可确保项目内 `appsettings.json`、SQLite 文件和静态资源使用预期路径。
+
+### 1. 首次初始化数据库与客户端词典
+
+```bash
+cd src/BeafSoup.DbMigrator
+dotnet run -- seed --connection "Data Source=../BeafSoup.HttpApi.Host/beafsoup.db" --seed-dir ../../data/seed
+dotnet run -- export-dictionary --connection "Data Source=../BeafSoup.HttpApi.Host/beafsoup.db" --output ../BeafSoup.Blazor.Client/wwwroot/dictionary.json
+```
+
+`seed` 会显式执行全部模块迁移并填充示例数据，不会在宿主启动时自动修改数据库（ADR-005）。后续只需要应用新迁移时，执行：
+
+```bash
+cd src/BeafSoup.DbMigrator
+dotnet run -- migrate --connection "Data Source=../BeafSoup.HttpApi.Host/beafsoup.db"
+```
+
+### 2. 启动 API 服务端
+
+```bash
+cd src/BeafSoup.HttpApi.Host
+dotnet run
+```
+
+- API 地址：`http://localhost:5080/`
+- 匿名健康检查：`http://localhost:5080/health`
+
+### 3. 启动 Blazor WebAssembly 客户端
+
+在另一个终端中执行：
+
+```bash
+cd src/BeafSoup.Blazor.Client
+dotnet run
+```
+
+浏览器访问 `http://localhost:5280/`。客户端 `wwwroot/appsettings.json` 中的 `ApiBaseUrl` 已指向上述服务端；服务端 `appsettings.json` 的 `Cors:AllowedOrigins` 已允许该客户端开发来源。修改服务端端口时，同步更新宿主 `Urls`、客户端 `ApiBaseUrl` 和宿主 `Properties/launchSettings.json`；修改客户端端口时，同步更新 `Cors:AllowedOrigins` 和客户端 `Properties/launchSettings.json`。
 
 ## 文档导航
 
