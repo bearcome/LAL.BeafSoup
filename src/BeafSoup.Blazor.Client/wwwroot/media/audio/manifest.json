@@ -1,0 +1,169 @@
+{
+  "generatedAtUtc": "2026-11-06T06:50:28.5308459Z",
+  "files": [
+    "de-DE/der-Kaffee-Max.mp3",
+    "de-DE/der-Kaffee-Mia.mp3",
+    "de-DE/der-Kaffee-Lars.mp3",
+    "de-DE/trinken-Max.mp3",
+    "de-DE/trinken-Mia.mp3",
+    "de-DE/trinken-Lars.mp3",
+    "de-DE/gro\u00DF-Max.mp3",
+    "de-DE/gro\u00DF-Mia.mp3",
+    "de-DE/gro\u00DF-Lars.mp3",
+    "de-DE/s-000001-Max.mp3",
+    "de-DE/s-000001-Mia.mp3",
+    "de-DE/s-000001-Lars.mp3",
+    "de-DE/s-000002-Max.mp3",
+    "de-DE/s-000002-Mia.mp3",
+    "de-DE/s-000002-Lars.mp3",
+    "de-DE/s-000003-Max.mp3",
+    "de-DE/s-000003-Mia.mp3",
+    "de-DE/s-000003-Lars.mp3"
+  ],
+  "assets": [
+    {
+      "path": "de-DE/der-Kaffee-Max.mp3",
+      "kind": "word",
+      "sourceKey": "word.coffee",
+      "voiceRole": "Male",
+      "voiceName": "de-DE-ConradNeural",
+      "ttsText": "der Kaffee"
+    },
+    {
+      "path": "de-DE/der-Kaffee-Mia.mp3",
+      "kind": "word",
+      "sourceKey": "word.coffee",
+      "voiceRole": "Female",
+      "voiceName": "de-DE-KatjaNeural",
+      "ttsText": "der Kaffee"
+    },
+    {
+      "path": "de-DE/der-Kaffee-Lars.mp3",
+      "kind": "word",
+      "sourceKey": "word.coffee",
+      "voiceRole": "Child",
+      "voiceName": "de-DE-KasperNeural",
+      "ttsText": "der Kaffee"
+    },
+    {
+      "path": "de-DE/trinken-Max.mp3",
+      "kind": "word",
+      "sourceKey": "verb.drink",
+      "voiceRole": "Male",
+      "voiceName": "de-DE-ConradNeural",
+      "ttsText": "trinken"
+    },
+    {
+      "path": "de-DE/trinken-Mia.mp3",
+      "kind": "word",
+      "sourceKey": "verb.drink",
+      "voiceRole": "Female",
+      "voiceName": "de-DE-KatjaNeural",
+      "ttsText": "trinken"
+    },
+    {
+      "path": "de-DE/trinken-Lars.mp3",
+      "kind": "word",
+      "sourceKey": "verb.drink",
+      "voiceRole": "Child",
+      "voiceName": "de-DE-KasperNeural",
+      "ttsText": "trinken"
+    },
+    {
+      "path": "de-DE/gro\u00DF-Max.mp3",
+      "kind": "word",
+      "sourceKey": "adjective.big",
+      "voiceRole": "Male",
+      "voiceName": "de-DE-ConradNeural",
+      "ttsText": "gro\u00DF"
+    },
+    {
+      "path": "de-DE/gro\u00DF-Mia.mp3",
+      "kind": "word",
+      "sourceKey": "adjective.big",
+      "voiceRole": "Female",
+      "voiceName": "de-DE-KatjaNeural",
+      "ttsText": "gro\u00DF"
+    },
+    {
+      "path": "de-DE/gro\u00DF-Lars.mp3",
+      "kind": "word",
+      "sourceKey": "adjective.big",
+      "voiceRole": "Child",
+      "voiceName": "de-DE-KasperNeural",
+      "ttsText": "gro\u00DF"
+    },
+    {
+      "path": "de-DE/s-000001-Max.mp3",
+      "kind": "dialogue-line",
+      "sourceKey": "s-000001",
+      "voiceRole": "Male",
+      "voiceName": "de-DE-ConradNeural",
+      "ttsText": "Guten Tag!"
+    },
+    {
+      "path": "de-DE/s-000001-Mia.mp3",
+      "kind": "dialogue-line",
+      "sourceKey": "s-000001",
+      "voiceRole": "Female",
+      "voiceName": "de-DE-KatjaNeural",
+      "ttsText": "Guten Tag!"
+    },
+    {
+      "path": "de-DE/s-000001-Lars.mp3",
+      "kind": "sentence",
+      "sourceKey": "s-000001",
+      "voiceRole": "Child",
+      "voiceName": "de-DE-KasperNeural",
+      "ttsText": "Guten Tag!"
+    },
+    {
+      "path": "de-DE/s-000002-Max.mp3",
+      "kind": "dialogue-line",
+      "sourceKey": "s-000002",
+      "voiceRole": "Male",
+      "voiceName": "de-DE-ConradNeural",
+      "ttsText": "Ich trinke Kaffee."
+    },
+    {
+      "path": "de-DE/s-000002-Mia.mp3",
+      "kind": "sentence",
+      "sourceKey": "s-000002",
+      "voiceRole": "Female",
+      "voiceName": "de-DE-KatjaNeural",
+      "ttsText": "Ich trinke Kaffee."
+    },
+    {
+      "path": "de-DE/s-000002-Lars.mp3",
+      "kind": "dialogue-line",
+      "sourceKey": "s-000002",
+      "voiceRole": "Child",
+      "voiceName": "de-DE-KasperNeural",
+      "ttsText": "Ich trinke Kaffee."
+    },
+    {
+      "path": "de-DE/s-000003-Max.mp3",
+      "kind": "sentence",
+      "sourceKey": "s-000003",
+      "voiceRole": "Male",
+      "voiceName": "de-DE-ConradNeural",
+      "ttsText": "Das Haus ist gro\u00DF."
+    },
+    {
+      "path": "de-DE/s-000003-Mia.mp3",
+      "kind": "dialogue-line",
+      "sourceKey": "s-000003",
+      "voiceRole": "Female",
+      "voiceName": "de-DE-KatjaNeural",
+      "ttsText": "Das Haus ist gro\u00DF."
+    },
+    {
+      "path": "de-DE/s-000003-Lars.mp3",
+      "kind": "sentence",
+      "sourceKey": "s-000003",
+      "voiceRole": "Child",
+      "voiceName": "de-DE-KasperNeural",
+      "ttsText": "Das Haus ist gro\u00DF."
+    }
+  ]
+}

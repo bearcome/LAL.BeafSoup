@@ -1,0 +1,7 @@
+@inject NavigationManager Navigation
+
+@code {
+    // 未登录访问受保护页面：跳转登录并携带回跳地址
+    protected override void OnInitialized()
+        => Navigation.NavigateTo($"/login?returnUrl={Uri.EscapeDataString(Navigation.Uri)}");
+}

@@ -22,8 +22,13 @@ public class AppState
             return;
         var mine = await _profiles.GetMineAsync(userId, cancellationToken);
         CurrentProfile ??= mine.FirstOrDefault();
-        if (CurrentProfile is not null)
-            await RefreshProgressAsync(cancellationToken);
+        if (CurrentProfile is null)
+        {
+            // 新账户尚无学习配置：按首个里程碑（中文学德语）自动创建，保证学习闭环开箱可用
+            CurrentProfile = await _profiles.CreateAsync(
+                userId, new CreateLearnerProfileRequest("zh-CN", "de-DE"), cancellationToken);
+        }
+        await RefreshProgressAsync(cancellationToken);
         Changed?.Invoke();
     }
 

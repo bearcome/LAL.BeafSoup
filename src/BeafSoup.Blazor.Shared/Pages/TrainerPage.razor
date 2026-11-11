@@ -2,6 +2,7 @@
 @attribute [Authorize]
 @using System.Text.Json
 @using BeafSoup.Learning
+@implements IDisposable
 @inject AppState AppState
 @inject LearningApiClient Learning
 @inject IDictionaryCache Dictionary
@@ -28,7 +29,10 @@ else if (_current is not null && _currentEntry is not null)
             <div style="color: var(--color-text-secondary);">@_currentEntry.PartOfSpeech</div>
             @if (PrimaryLexeme(_currentEntry) is { } lexeme && lexeme.TryGetProperty("audioUrl", out var audio))
             {
-                <AudioButton Url="@audio.GetString()" />
+                @* 阻止冒泡：点播放不应触发翻卡 *@
+                <div @onclick:stopPropagation="true">
+                    <AudioButton Url="@audio.GetString()" />
+                </div>
             }
             <p style="color: var(--color-text-secondary);">@UiText.Text("ui.trainer.flip")</p>
         }
@@ -84,9 +88,21 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        AppState.Changed += OnAppStateChanged;
         await Dictionary.EnsureLoadedAsync(CancellationToken.None);
         await LoadQueueAsync();
     }
+
+    // 布局异步恢复学习配置后才触发：补拉复习队列，避免页面永远停在加载态
+    private void OnAppStateChanged()
+        => _ = InvokeAsync(async () =>
+        {
+            if (_queue is null)
+                await LoadQueueAsync();
+            StateHasChanged();
+        });
+
+    public void Dispose() => AppState.Changed -= OnAppStateChanged;
 
     private async Task LoadQueueAsync()
     {

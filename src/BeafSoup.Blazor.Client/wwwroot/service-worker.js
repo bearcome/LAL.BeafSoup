@@ -1,5 +1,5 @@
 // BeafSoup PWA service worker：缓存外壳资产，API 请求一律直连网络（不回退伪造响应）。
-const cacheName = "beafsoup-shell-v1";
+const cacheName = "beafsoup-shell-v4";
 const shellAssets = ["./", "./index.html", "./manifest.webmanifest", "./icon.svg", "./appsettings.json"];
 
 self.addEventListener("install", event => {

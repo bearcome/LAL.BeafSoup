@@ -1,20 +1,35 @@
 @inject IUiTextProvider UiText
 @inject IJSRuntime JsRuntime
+@inject IConfiguration Configuration
 
 <button class="audio-button" @onclick="PlayAsync" disabled="@_playing"
         aria-label="@UiText.Text("ui.audio.play")">
     @UiText.Text("ui.audio.play")
 </button>
-<audio @ref="_audio" src="@Url" preload="none"
+<audio @ref="_audio" src="@ResolvedUrl" preload="none"
        @onended="OnEnded" @onerror="OnEnded"></audio>
 
 @code {
-    /// <summary>音频静态资产 URL（服务端按 audio-asset-spec 预解析）。</summary>
+    /// <summary>音频静态资产相对路径（服务端按 audio-asset-spec 预解析）；经 MediaBaseUrl 拼为可访问 URL。</summary>
     [Parameter]
     public string? Url { get; set; }
 
     private ElementReference _audio;
     private bool _playing;
+
+    // 多媒体基路径来自客户端配置（部署时可用 CDN/独立域名替换）
+    private string? ResolvedUrl => Url is null ? null
+        : Uri.IsWellFormedUriString(Url, UriKind.Absolute) ? Url
+        : (MediaBaseUrl + Url);
+
+    private string MediaBaseUrl
+    {
+        get
+        {
+            var raw = Configuration["MediaBaseUrl"] ?? "media/";
+            return raw.EndsWith('/') ? raw : raw + "/";
+        }
+    }
 
     private async Task PlayAsync()
     {

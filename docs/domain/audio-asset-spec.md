@@ -41,6 +41,12 @@
 3. Azure 密钥只存在于仓库根 `secret.json`（已 git 忽略，结构 `AzureTTS: { Endpoint, ApiKey, Region }`），由工具运行时绑定；非机密配置（输出目录、CEFR→语速映射、角色韵律覆盖）在工具的 `appsettings.json`。WASM 应用永不直接调用 Azure。
 4. 工具命令：`validate`（只校验种子数据，不触网）、`generate --dry-run`（打印资产清单）、`generate`（实际合成并写 `manifest.json`）。
 
+### 产物位置与访问
+
+- 生成产物直接写入 Blazor 客户端静态目录：`src/BeafSoup.Blazor.Client/wwwroot/media/audio/`（`de-DE/*.mp3` + `manifest.json`），随客户端静态部署发布；输出目录由工具 `appsettings.json` 的 `outputDirectory` 指定。
+- 数据中存储的音频地址（如词典与习题载荷中的 `audioUrl`）一律为本规范定义的**相对路径**（`{language}/{name}.mp3`）；客户端经 `wwwroot/appsettings.json` 的 `MediaBaseUrl`（默认 `media/audio/`）拼接为可访问 URL，部署到 CDN 或独立域名时只改该配置。
+- 应用端统一经 `AudioButton` 组件解析基路径，任何组件不得自行拼接音频 URL。
+
 ## 内容硬规则
 
 1. **说话人名绝不朗读**。对话行的 TTS 文本仅为该行内容；`Max:` / `Kari:` 是展示元数据，合成前剥离（需求 8，见 `exercise-types.md`"对话填空"一节）。

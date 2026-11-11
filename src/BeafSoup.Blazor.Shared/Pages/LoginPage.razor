@@ -33,6 +33,9 @@
     private readonly LoginModel _model = new();
     private string? _errorKey;
 
+    [Microsoft.AspNetCore.Components.SupplyParameterFromQuery]
+    public string? ReturnUrl { get; set; }
+
     private async Task SubmitAsync()
     {
         _errorKey = null;
@@ -44,7 +47,8 @@
             AuthState.NotifyLoggedIn();
             await AppState.EnsureProfileAsync(tokens.UserId, CancellationToken.None);
             Heartbeat.Start();
-            Navigation.NavigateTo("/");
+            // 回跳仅限站内地址（相对路径或同站绝对 URL），防开放重定向
+            Navigation.NavigateTo(SafeReturnUrl() ?? "/");
         }
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
         {
@@ -60,5 +64,16 @@
     {
         public string Email { get; set; } = "";
         public string Password { get; set; } = "";
+    }
+
+    private string? SafeReturnUrl()
+    {
+        if (ReturnUrl is null)
+            return null;
+        if (Uri.TryCreate(ReturnUrl, UriKind.Relative, out _))
+            return ReturnUrl;
+        return Uri.TryCreate(ReturnUrl, UriKind.Absolute, out var absolute)
+            && string.Equals(absolute.Authority, new Uri(Navigation.BaseUri).Authority, StringComparison.OrdinalIgnoreCase)
+            ? absolute.PathAndQuery : null;
     }
 }

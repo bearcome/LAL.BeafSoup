@@ -2,7 +2,7 @@
 
 ## 第 0 阶段 — 骨架与文档（当前）
 
-- [x] 仓库骨架：`src/`、`test/`、`docs/`、`media/`
+- [x] 仓库骨架：`src/`、`test/`、`docs/`（多媒体生成产物现直接输出至 Blazor 客户端 `wwwroot/media/`）
 - [x] `README.md`、`CONTEXT.md`、`AGENTS.md`、`.gitignore`
 - [x] 架构文档（DDD 分层、规划解决方案布局、ADR 决策记录）
 - [x] 领域文档（领域模型、多语言数据设计、音频资产规范）
@@ -17,7 +17,7 @@
 - [x] 领域不变量单元测试（歧义词形检索、翻译修订导致的标注失效、概念级 SRS 卡与范式槽位掌握度、语义键唯一性、音频路径生成）
 - [x] 架构测试：模块依赖方向（NetArchTest）
 - [x] CI：`dotnet build` 零警告 + `dotnet test`
-- 附带回环产物：`BeafSoup.Audio.Generation` 离线工具 + `data/seed/` 每种数据 3 条测试数据 + `media/audio/` 18 个生成资产（原计划第 2 阶段的管线部分，提前落地；数据库 Schema 仍属第 2 阶段）
+- 附带回环产物：`BeafSoup.Audio.Generation` 离线工具 + `data/seed/` 每种数据 3 条测试数据 + `wwwroot/media/audio/` 18 个生成资产（随客户端静态部署，音频基路径经客户端 `MediaBaseUrl` 配置）（原计划第 2 阶段的管线部分，提前落地；数据库 Schema 仍属第 2 阶段）
 
 ## 第 2 阶段 — 内容与本地化数据层
 

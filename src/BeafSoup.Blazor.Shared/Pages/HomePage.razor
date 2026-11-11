@@ -2,11 +2,77 @@
 @attribute [AllowAnonymous]
 @inject IUiTextProvider UiText
 
-<h1><T Key="ui.app.title" /></h1>
-<p><T Key="ui.dashboard.welcome" /></p>
+<section class="home-hero">
+    <h1><T Key="ui.app.title" /></h1>
+    <p class="home-tagline"><T Key="ui.dashboard.tagline" /></p>
+    <div class="home-actions">
+        <a class="button-link primary" href="/tree"><T Key="ui.dashboard.cta.start" /></a>
+        <a class="button-link" href="/trainer"><T Key="ui.nav.trainer" /></a>
+    </div>
+    <AuthorizeView>
+        <NotAuthorized>
+            <p class="home-login-note">
+                <T Key="ui.dashboard.login-prompt" />
+                · <a href="/login"><T Key="ui.nav.login" /></a>
+                · <a href="/register"><T Key="ui.auth.link.to-register" /></a>
+            </p>
+        </NotAuthorized>
+    </AuthorizeView>
+</section>
 
-<div class="skill-tree-grid">
-    <a class="card" href="/tree"><T Key="ui.nav.tree" /></a>
-    <a class="card" href="/trainer"><T Key="ui.nav.trainer" /></a>
-    <a class="card" href="/settings"><T Key="ui.nav.settings" /></a>
+<h2 class="home-section-title"><T Key="ui.dashboard.features.title" /></h2>
+<div class="home-grid features">
+    <div class="card home-card">
+        <svg class="home-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+        </svg>
+        <h3><T Key="ui.dashboard.feature.title.exercises" /></h3>
+        <p><T Key="ui.dashboard.feature.exercises" /></p>
+    </div>
+    <div class="card home-card">
+        <svg class="home-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M4 3h13a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V3z" /><path d="M8 8h7M8 12h7M8 16h4" />
+        </svg>
+        <h3><T Key="ui.dashboard.feature.title.morphology" /></h3>
+        <p><T Key="ui.dashboard.feature.morphology" /></p>
+    </div>
+    <div class="card home-card">
+        <svg class="home-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M17 2l4 4-4 4" /><path d="M3 11v-1a4 4 0 0 1 4-4h14" /><path d="M7 22l-4-4 4-4" /><path d="M21 13v1a4 4 0 0 1-4 4H3" />
+        </svg>
+        <h3><T Key="ui.dashboard.feature.title.srs" /></h3>
+        <p><T Key="ui.dashboard.feature.srs" /></p>
+    </div>
+    <div class="card home-card">
+        <svg class="home-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M11 5L6 9H2v6h4l5 4V5z" /><path d="M15.5 8.5a5 5 0 0 1 0 7" /><path d="M18.5 5.5a9 9 0 0 1 0 13" />
+        </svg>
+        <h3><T Key="ui.dashboard.feature.title.audio" /></h3>
+        <p><T Key="ui.dashboard.feature.audio" /></p>
+    </div>
+</div>
+
+<h2 class="home-section-title"><T Key="ui.nav.tree" /></h2>
+<div class="home-grid">
+    <a class="card home-card" href="/tree">
+        <svg class="home-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 2v6" /><path d="M12 8c-4 0-7 3-7 7" /><path d="M12 8c4 0 7 3 7 7" /><circle cx="5" cy="17" r="2.5" /><circle cx="19" cy="17" r="2.5" />
+        </svg>
+        <h3><T Key="ui.nav.tree" /></h3>
+        <p><T Key="ui.dashboard.card.tree.desc" /></p>
+    </a>
+    <a class="card home-card" href="/trainer">
+        <svg class="home-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="2" y="4" width="20" height="16" rx="2" /><path d="M8 12h8M8 8h4M8 16h6" />
+        </svg>
+        <h3><T Key="ui.nav.trainer" /></h3>
+        <p><T Key="ui.dashboard.card.trainer.desc" /></p>
+    </a>
+    <a class="card home-card" href="/settings">
+        <svg class="home-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+        </svg>
+        <h3><T Key="ui.nav.settings" /></h3>
+        <p><T Key="ui.dashboard.card.settings.desc" /></p>
+    </a>
 </div>

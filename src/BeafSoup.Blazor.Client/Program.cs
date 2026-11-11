@@ -51,8 +51,9 @@ builder.Services.AddScoped<BeafSoup.Content.ICourseCatalogQuery>(provider => pro
 builder.Services.AddScoped<ExerciseApiClient>();
 builder.Services.AddScoped<IExercisePresentationQuery>(provider => provider.GetRequiredService<ExerciseApiClient>());
 builder.Services.AddScoped<IExerciseGradingAppService>(provider => provider.GetRequiredService<ExerciseApiClient>());
-builder.Services.AddScoped<IDictionaryCache>(provider =>
-    new DictionaryCache(provider.GetRequiredService<HttpClient>(),
+builder.Services.AddScoped<IDictionaryCache>(_ =>
+    // 词典是客户端静态资产，必须用应用基址而非 API 基址
+    new DictionaryCache(new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) },
         builder.Configuration["DictionaryUrl"] ?? "dictionary.json"));
 builder.Services.AddScoped<AppState>();
 
@@ -62,8 +63,10 @@ builder.Services.AddScoped<IUiTextProvider>(_ => new UiTextProvider(
 
 builder.Services.AddAuthorizationCore();
 
-// 启动时预热：主题初始化 + 文案目录加载（失败时保持键回退，不阻断渲染）
+// 启动时预热：主题初始化 + 令牌缓存恢复 + 文案目录加载（失败时保持键回退，不阻断渲染）
 var host = builder.Build();
+var tokens = host.Services.GetRequiredService<IAuthTokenStore>();
+await tokens.RestoreAsync(CancellationToken.None);
 var theme = host.Services.GetRequiredService<IThemeService>();
 await theme.InitializeAsync(CancellationToken.None);
 var uiText = host.Services.GetRequiredService<IUiTextProvider>();

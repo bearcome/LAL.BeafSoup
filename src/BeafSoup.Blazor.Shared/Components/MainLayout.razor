@@ -33,8 +33,43 @@
 </main>
 
 @code {
+    [CascadingParameter] private Task<AuthenticationState>? AuthStateTask { get; set; }
+
     protected override void OnInitialized() => Heartbeat.SessionExpired += OnSessionExpired;
-    private void OnSessionExpired() => InvokeAsync(StateHasChanged);
+
+    // 回访会话（令牌仍在本地缓存）：恢复学习配置与进度快照，学习页不再卡在加载态
+    protected override async Task OnInitializedAsync()
+    {
+        if (AuthStateTask is null)
+            return;
+        var auth = await AuthStateTask;
+        if (auth.User.Identity?.IsAuthenticated == true
+            && Guid.TryParse(auth.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out var userId))
+        {
+            try
+            {
+                await AppState.EnsureProfileAsync(userId, CancellationToken.None);
+            }
+            catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            {
+                // 服务端会话已失效（租约过期/被顶替）：本地登出，回到匿名态
+                OnSessionExpired();
+            }
+            catch (HttpRequestException)
+            {
+                // 服务端不可达：ConnectivityBanner 提示，登录后各页会再次拉起配置
+            }
+        }
+    }
+
+    // 心跳发现 401 或令牌过期：清理本地缓存并回到匿名态（权威状态在服务端，ADR-006）
+    private void OnSessionExpired()
+    {
+        Heartbeat.Stop();
+        AppState.Reset();
+        AuthState.NotifyLoggedOut();
+        _ = InvokeAsync(StateHasChanged);
+    }
 
     private async Task LogoutAsync()
     {

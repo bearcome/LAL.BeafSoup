@@ -24,6 +24,10 @@ public abstract class ApiClientBase
     {
         using var request = await CreateRequestAsync(HttpMethod.Get, uri, cancellationToken);
         var response = await SendCoreAsync(request, cancellationToken);
+        // 404 视为资源不存在（返回 null），其余非成功统一抛 HttpRequestException，由调用侧按场景处理
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            return default;
+        response.EnsureSuccessStatusCode();
         return await response.Content.ReadFromJsonAsync<TResponse>(cancellationToken: cancellationToken);
     }
 

@@ -34,6 +34,7 @@
   --font-size-body: 16px;
   --font-size-small: 13px;
   --font-size-title: 22px;
+  --gradient-hero: linear-gradient(135deg, rgba(26, 127, 75, 0.16), rgba(26, 127, 75, 0.05) 55%, rgba(26, 127, 75, 0));
 }
 
 [data-theme="dark"] {
@@ -56,6 +57,7 @@
   --color-border: #30363d;
   --shadow-popover: 0 8px 24px rgba(0, 0, 0, 0.55);
   --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.5);
+  --gradient-hero: linear-gradient(135deg, rgba(63, 185, 80, 0.22), rgba(63, 185, 80, 0.08) 55%, rgba(63, 185, 80, 0));
 }
 
 /* ---- 基础排版与触摸目标（手机 ≥44×44px）---- */
@@ -114,6 +116,129 @@ button, a.button-link, input, select {
   border-radius: var(--radius-medium);
   box-shadow: var(--shadow-card);
   padding: var(--spacing-6);
+}
+
+/* ---- 首页（HomePage）：英雄区 + 特色 + 路径卡片，全部消费语义令牌 ---- */
+.home-hero {
+  background: var(--gradient-hero);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-large);
+  padding: var(--spacing-8) var(--spacing-6);
+  text-align: center;
+}
+
+.home-hero h1 {
+  margin: 0 0 var(--spacing-3);
+  font-size: clamp(1.6rem, 4vw, 2.2rem);
+}
+
+.home-tagline {
+  color: var(--color-text-secondary);
+  max-width: 38rem;
+  margin: 0 auto var(--spacing-6);
+}
+
+.home-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-3);
+  justify-content: center;
+}
+
+.button-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 var(--spacing-6);
+  border-radius: var(--radius-medium);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-overlay);
+  color: var(--color-text-primary);
+  text-decoration: none;
+  font-weight: 600;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+a.button-link:hover {
+  border-color: var(--color-primary);
+}
+
+.button-link.primary {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-primary-contrast);
+}
+
+.button-link.primary:hover {
+  background: var(--color-primary-hover);
+}
+
+.home-section-title {
+  font-size: var(--font-size-title);
+  margin: var(--spacing-8) 0 var(--spacing-4);
+}
+
+.home-grid {
+  display: grid;
+  gap: var(--spacing-4);
+  grid-template-columns: 1fr;
+}
+
+.home-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+a.home-card:hover {
+  border-color: var(--color-primary);
+  transform: translateY(-2px);
+}
+
+.home-card .home-card-icon {
+  width: 32px;
+  height: 32px;
+  color: var(--color-primary);
+}
+
+.home-card h3 {
+  margin: 0;
+}
+
+.home-card p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-small);
+  line-height: 1.6;
+}
+
+.home-login-note {
+  margin-top: var(--spacing-4);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-small);
+}
+
+.home-login-note a {
+  color: var(--color-primary);
+}
+
+@media (min-width: 768px) {
+  .home-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1200px) {
+  .home-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .home-grid.features {
+    grid-template-columns: repeat(4, 1fr);
+  }
 }
 
 /* ---- 弹层：纯覆盖层，绝不引发回流（word-inspector-popover.md 不可协商约束）---- */

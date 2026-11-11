@@ -9,4 +9,7 @@ public interface IAuthTokenStore
     bool IsExpired { get; }
     Task StoreAsync(AuthTokensDto tokens, CancellationToken cancellationToken);
     Task ClearAsync(CancellationToken cancellationToken);
+
+    /// <summary>启动时从浏览器存储恢复缓存（幂等；此后 Tokens/IsExpired 才有意义）。</summary>
+    Task RestoreAsync(CancellationToken cancellationToken);
 }
