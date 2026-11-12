@@ -39,6 +39,13 @@ cd src/BeafSoup.DbMigrator
 dotnet run -- migrate --connection "Data Source=../BeafSoup.HttpApi.Host/beafsoup.db"
 ```
 
+界面文案或音色配置更新后，用幂等的本地化同步回填运行库（不清空课程与学习数据；若界面显示 `ui.*` 原始语义键，通常就是漏了这一步）：
+
+```bash
+cd src/BeafSoup.DbMigrator
+dotnet run -- sync-localization --connection "Data Source=../BeafSoup.HttpApi.Host/beafsoup.db" --seed-dir ../../data/seed
+```
+
 ### 2. 启动 API 服务端
 
 ```bash

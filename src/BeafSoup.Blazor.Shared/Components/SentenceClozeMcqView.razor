@@ -2,12 +2,12 @@
 @inherits GradedExerciseBase
 @inject IUiTextProvider UiText
 
-@* 句子填空选择题：句子带空（词可点击弹层），4 选 1 即时判分。 *@
+@* 句子填空选择题：句子带空（词可点击弹层），4 选 1 即时判分；题目加载后自动播放句子音频。 *@
 <div class="card">
     <ClickableSentence Text="@SentenceText" BlankStart="@BlankStart" BlankLength="@BlankLength" />
     @if (Payload.TryGetProperty("audioUrl", out var audio))
     {
-        <AudioButton Url="@audio.GetString()" />
+        <AudioButton Url="@audio.GetString()" AutoPlay="true" />
     }
     <div style="display:grid; gap: var(--spacing-2); margin-top: var(--spacing-4);">
         @foreach (var option in Options)

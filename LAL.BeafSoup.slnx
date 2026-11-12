@@ -65,5 +65,6 @@
     <Project Path="test/Modules/BeafSoup.Identity.Domain.Tests/BeafSoup.Identity.Domain.Tests.csproj" />
     <Project Path="test/Modules/BeafSoup.UsageAnalytics.Domain.Tests/BeafSoup.UsageAnalytics.Domain.Tests.csproj" />
     <Project Path="test/BeafSoup.Api.Tests/BeafSoup.Api.Tests.csproj" />
+    <Project Path="test/BeafSoup.Blazor.Tests/BeafSoup.Blazor.Tests.csproj" />
   </Folder>
 </Solution>

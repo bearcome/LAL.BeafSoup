@@ -1,51 +1,123 @@
 @inject IUiTextProvider UiText
 @inject IJSRuntime JsRuntime
 @inject IConfiguration Configuration
+@inject NavigationManager Navigation
 
-<button class="audio-button" @onclick="PlayAsync" disabled="@_playing"
-        aria-label="@UiText.Text("ui.audio.play")">
-    @UiText.Text("ui.audio.play")
-</button>
+@* 音频按钮只显示图标：播放中由呼吸动画表达状态，错误时才显示本地化短提示（无障碍名称随状态变化）。 *@
+<div class="audio-control">
+    <button class="audio-button @(_playing ? "is-playing" : "")" @onclick="PlayFromButtonAsync" disabled="@_playing"
+            aria-label="@Label" title="@Label">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+            <path d="M11 5 6 9H3v6h3l5 4V5Z" />
+            <path d="M15 9a4 4 0 0 1 0 6M18 6a8 8 0 0 1 0 12" />
+        </svg>
+    </button>
+    @if (_failed)
+    {
+        <span class="audio-error" role="status"><T Key="ui.audio.error" /></span>
+    }
+</div>
 <audio @ref="_audio" src="@ResolvedUrl" preload="none"
-       @onended="OnEnded" @onerror="OnEnded"></audio>
+       @onended="OnEnded" @onerror="OnError"></audio>
 
 @code {
     /// <summary>音频静态资产相对路径（服务端按 audio-asset-spec 预解析）；经 MediaBaseUrl 拼为可访问 URL。</summary>
     [Parameter]
     public string? Url { get; set; }
 
+    /// <summary>渲染后自动播放一次（题目/背词卡加载即朗读）；浏览器拒绝时静默，不影响手动播放。</summary>
+    [Parameter]
+    public bool AutoPlay { get; set; }
+
     private ElementReference _audio;
     private bool _playing;
+    private bool _failed;
+    private bool _usingFallback;
+    private string? _autoPlayedUrl;
+    private string? _lastUrl;
+
+    private string Label => UiText.Text(_playing ? "ui.audio.playing" : "ui.audio.play");
+
+    // 对话填空的补全版资产缺失时回退到同句子的完整音频：基础句音频本身已是补全后的台词，
+    // 既不会朗读说话人标签，也不会出现空行；仅当回退音频也失败时才显示错误。
+    private string? EffectiveUrl => _usingFallback && Url?.Contains("-revealed-", StringComparison.Ordinal) == true
+        ? Url.Replace("-revealed-", "-", StringComparison.Ordinal)
+        : Url;
 
     // 多媒体基路径来自客户端配置（部署时可用 CDN/独立域名替换）
-    private string? ResolvedUrl => Url is null ? null
-        : Uri.IsWellFormedUriString(Url, UriKind.Absolute) ? Url
-        : (MediaBaseUrl + Url);
+    private string? ResolvedUrl => MediaUrlResolver.Resolve(
+        EffectiveUrl, Configuration["MediaBaseUrl"], Navigation.BaseUri);
 
-    private string MediaBaseUrl
+    protected override void OnParametersSet()
     {
-        get
+        // 切换到新卡片/新题目时重置播放状态，使新音频可以再次自动播放
+        if (!string.Equals(_lastUrl, Url, StringComparison.Ordinal))
         {
-            var raw = Configuration["MediaBaseUrl"] ?? "media/";
-            return raw.EndsWith('/') ? raw : raw + "/";
+            _lastUrl = Url;
+            _playing = false;
+            _failed = false;
+            _usingFallback = false;
         }
     }
 
-    private async Task PlayAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!AutoPlay || _playing || ResolvedUrl is null || ResolvedUrl == _autoPlayedUrl)
+            return;
+        _autoPlayedUrl = ResolvedUrl;
+        // 自动播放被浏览器策略拒绝时不提示失败：保留手动播放入口即可
+        await PlayCoreAsync(showError: false);
+    }
+
+    /// <summary>供父组件触发重播；返回是否真正开始播放（播放中或加载失败时为 false）。</summary>
+    public Task<bool> TryPlayAsync() => PlayCoreAsync(showError: true);
+
+    private async Task PlayFromButtonAsync() => await PlayCoreAsync(showError: true);
+
+    private async Task<bool> PlayCoreAsync(bool showError)
     {
         if (string.IsNullOrEmpty(Url) || _playing)
-            return;
+            return false;
         _playing = true;
+        _failed = false;
         try
         {
-            await JsRuntime.InvokeVoidAsync("beafSoupAudio.play", _audio);
+            var started = await JsRuntime.InvokeAsync<bool>("beafSoupAudio.play", _audio);
+            if (!started)
+            {
+                _playing = false;
+                _failed = showError;
+                return false;
+            }
+            return true;
         }
-        catch (InvalidOperationException)
+        catch (Exception exception) when (exception is InvalidOperationException or JSException)
         {
-            // 浏览器禁止自动播放等：保持按钮可用
+            // 浏览器拒绝播放或音频加载失败：恢复按钮，避免未处理的 JS Promise 异常
             _playing = false;
+            _failed = showError;
+            return false;
         }
     }
 
-    private void OnEnded() => _playing = false;
+    private void OnEnded()
+    {
+        _playing = false;
+        _failed = false;
+    }
+
+    private void OnError()
+    {
+        // 补全版资产 404 时切换到基础句音频；重新渲染后 AutoPlay 会用新地址再播一次
+        if (!_usingFallback && Url?.Contains("-revealed-", StringComparison.Ordinal) == true)
+        {
+            _usingFallback = true;
+            _playing = false;
+            _failed = false;
+            StateHasChanged();
+            return;
+        }
+        _playing = false;
+        _failed = true;
+    }
 }

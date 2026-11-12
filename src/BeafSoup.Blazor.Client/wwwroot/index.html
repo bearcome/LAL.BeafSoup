@@ -26,10 +26,68 @@
     </div>
     <script src="_framework/blazor.webassembly.js"></script>
     <script>
-        navigator.serviceWorker?.register("service-worker.js");
-        // 音频播放桥（BL0016 防护：异常在调用侧捕获）
+        // 开发环境不注册 service worker：避免缓存旧外壳/旧运行时导致热重载与调试资源出现假 404
+        if ("serviceWorker" in navigator) {
+            var isDevelopmentHost = location.hostname === "localhost" || location.hostname === "127.0.0.1";
+            if (isDevelopmentHost) {
+                navigator.serviceWorker.getRegistrations()
+                    .then(function (registrations) {
+                        registrations.forEach(function (registration) { registration.unregister(); });
+                    });
+            } else {
+                navigator.serviceWorker.register("service-worker.js");
+            }
+        }
+        // 音频播放桥：在脚本内吸收浏览器播放拒绝与加载失败，调用侧仅接收状态
         window.beafSoupAudio = {
-            play: function (element) { if (element && element.play) return element.play(); }
+            play: async function (element) {
+                if (!element || !element.play) return false;
+                try {
+                    await element.play();
+                    return true;
+                } catch (e) {
+                    return false;
+                }
+            },
+            // 判分提示音：Web Audio 即时合成，无需静态音频资产；答对上行双音，答错下行低音
+            playFeedback: function (kind) {
+                try {
+                    var AudioContextCtor = window.AudioContext || window.webkitAudioContext;
+                    if (!AudioContextCtor) return false;
+                    var context = window.beafSoupAudio.context;
+                    if (!context) {
+                        context = new AudioContextCtor();
+                        window.beafSoupAudio.context = context;
+                    }
+                    var notes = kind === "correct"
+                        ? [[784, 0, 0.10], [1046.5, 0.10, 0.16]]
+                        : [[196, 0, 0.15], [146.8, 0.15, 0.22]];
+                    var schedule = function () {
+                        var start = context.currentTime;
+                        notes.forEach(function (note) {
+                            var oscillator = context.createOscillator();
+                            var gain = context.createGain();
+                            oscillator.type = kind === "correct" ? "sine" : "triangle";
+                            oscillator.frequency.value = note[0];
+                            gain.gain.setValueAtTime(0.0001, start + note[1]);
+                            gain.gain.exponentialRampToValueAtTime(0.16, start + note[1] + 0.02);
+                            gain.gain.exponentialRampToValueAtTime(0.0001, start + note[1] + note[2]);
+                            oscillator.connect(gain).connect(context.destination);
+                            oscillator.start(start + note[1]);
+                            oscillator.stop(start + note[1] + note[2] + 0.02);
+                        });
+                    };
+                    // 首次提交时上下文可能仍为 suspended：恢复后再排程，避免提示音被静默丢弃
+                    if (context.state === "suspended") {
+                        context.resume().then(schedule).catch(function () { });
+                    } else {
+                        schedule();
+                    }
+                    return true;
+                } catch (e) {
+                    return false;
+                }
+            }
         };
     </script>
 </body>

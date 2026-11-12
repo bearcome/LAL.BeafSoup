@@ -1,15 +1,21 @@
 {
-  "generatedAtUtc": "2026-11-06T06:50:28.5308459Z",
+  "generatedAtUtc": "2026-11-11T04:49:01.8921763Z",
   "files": [
-    "de-DE/der-Kaffee-Max.mp3",
-    "de-DE/der-Kaffee-Mia.mp3",
-    "de-DE/der-Kaffee-Lars.mp3",
     "de-DE/trinken-Max.mp3",
     "de-DE/trinken-Mia.mp3",
     "de-DE/trinken-Lars.mp3",
+    "de-DE/zechen-Max.mp3",
+    "de-DE/zechen-Mia.mp3",
+    "de-DE/zechen-Lars.mp3",
+    "de-DE/der-Kaffee-Max.mp3",
+    "de-DE/der-Kaffee-Mia.mp3",
+    "de-DE/der-Kaffee-Lars.mp3",
     "de-DE/gro\u00DF-Max.mp3",
     "de-DE/gro\u00DF-Mia.mp3",
     "de-DE/gro\u00DF-Lars.mp3",
+    "de-DE/guten-Tag-Max.mp3",
+    "de-DE/guten-Tag-Mia.mp3",
+    "de-DE/guten-Tag-Lars.mp3",
     "de-DE/s-000001-Max.mp3",
     "de-DE/s-000001-Mia.mp3",
     "de-DE/s-000001-Lars.mp3",
@@ -22,33 +28,9 @@
   ],
   "assets": [
     {
-      "path": "de-DE/der-Kaffee-Max.mp3",
-      "kind": "word",
-      "sourceKey": "word.coffee",
-      "voiceRole": "Male",
-      "voiceName": "de-DE-ConradNeural",
-      "ttsText": "der Kaffee"
-    },
-    {
-      "path": "de-DE/der-Kaffee-Mia.mp3",
-      "kind": "word",
-      "sourceKey": "word.coffee",
-      "voiceRole": "Female",
-      "voiceName": "de-DE-KatjaNeural",
-      "ttsText": "der Kaffee"
-    },
-    {
-      "path": "de-DE/der-Kaffee-Lars.mp3",
-      "kind": "word",
-      "sourceKey": "word.coffee",
-      "voiceRole": "Child",
-      "voiceName": "de-DE-KasperNeural",
-      "ttsText": "der Kaffee"
-    },
-    {
       "path": "de-DE/trinken-Max.mp3",
       "kind": "word",
-      "sourceKey": "verb.drink",
+      "sourceKey": "2f00c92d-d898-360b-4ff3-450ae76b3fcd",
       "voiceRole": "Male",
       "voiceName": "de-DE-ConradNeural",
       "ttsText": "trinken"
@@ -56,7 +38,7 @@
     {
       "path": "de-DE/trinken-Mia.mp3",
       "kind": "word",
-      "sourceKey": "verb.drink",
+      "sourceKey": "2f00c92d-d898-360b-4ff3-450ae76b3fcd",
       "voiceRole": "Female",
       "voiceName": "de-DE-KatjaNeural",
       "ttsText": "trinken"
@@ -64,15 +46,63 @@
     {
       "path": "de-DE/trinken-Lars.mp3",
       "kind": "word",
-      "sourceKey": "verb.drink",
+      "sourceKey": "2f00c92d-d898-360b-4ff3-450ae76b3fcd",
       "voiceRole": "Child",
       "voiceName": "de-DE-KasperNeural",
       "ttsText": "trinken"
     },
     {
+      "path": "de-DE/zechen-Max.mp3",
+      "kind": "word",
+      "sourceKey": "7e213dc8-f8bc-3a20-1b94-a950d30c92e0",
+      "voiceRole": "Male",
+      "voiceName": "de-DE-ConradNeural",
+      "ttsText": "zechen"
+    },
+    {
+      "path": "de-DE/zechen-Mia.mp3",
+      "kind": "word",
+      "sourceKey": "7e213dc8-f8bc-3a20-1b94-a950d30c92e0",
+      "voiceRole": "Female",
+      "voiceName": "de-DE-KatjaNeural",
+      "ttsText": "zechen"
+    },
+    {
+      "path": "de-DE/zechen-Lars.mp3",
+      "kind": "word",
+      "sourceKey": "7e213dc8-f8bc-3a20-1b94-a950d30c92e0",
+      "voiceRole": "Child",
+      "voiceName": "de-DE-KasperNeural",
+      "ttsText": "zechen"
+    },
+    {
+      "path": "de-DE/der-Kaffee-Max.mp3",
+      "kind": "word",
+      "sourceKey": "54b6840f-c650-3fd3-be8b-a64fdcf60d40",
+      "voiceRole": "Male",
+      "voiceName": "de-DE-ConradNeural",
+      "ttsText": "der Kaffee"
+    },
+    {
+      "path": "de-DE/der-Kaffee-Mia.mp3",
+      "kind": "word",
+      "sourceKey": "54b6840f-c650-3fd3-be8b-a64fdcf60d40",
+      "voiceRole": "Female",
+      "voiceName": "de-DE-KatjaNeural",
+      "ttsText": "der Kaffee"
+    },
+    {
+      "path": "de-DE/der-Kaffee-Lars.mp3",
+      "kind": "word",
+      "sourceKey": "54b6840f-c650-3fd3-be8b-a64fdcf60d40",
+      "voiceRole": "Child",
+      "voiceName": "de-DE-KasperNeural",
+      "ttsText": "der Kaffee"
+    },
+    {
       "path": "de-DE/gro\u00DF-Max.mp3",
       "kind": "word",
-      "sourceKey": "adjective.big",
+      "sourceKey": "a70b3c7e-8cfe-c554-4533-342eb251065d",
       "voiceRole": "Male",
       "voiceName": "de-DE-ConradNeural",
       "ttsText": "gro\u00DF"
@@ -80,7 +110,7 @@
     {
       "path": "de-DE/gro\u00DF-Mia.mp3",
       "kind": "word",
-      "sourceKey": "adjective.big",
+      "sourceKey": "a70b3c7e-8cfe-c554-4533-342eb251065d",
       "voiceRole": "Female",
       "voiceName": "de-DE-KatjaNeural",
       "ttsText": "gro\u00DF"
@@ -88,10 +118,34 @@
     {
       "path": "de-DE/gro\u00DF-Lars.mp3",
       "kind": "word",
-      "sourceKey": "adjective.big",
+      "sourceKey": "a70b3c7e-8cfe-c554-4533-342eb251065d",
       "voiceRole": "Child",
       "voiceName": "de-DE-KasperNeural",
       "ttsText": "gro\u00DF"
+    },
+    {
+      "path": "de-DE/guten-Tag-Max.mp3",
+      "kind": "word",
+      "sourceKey": "8eeffa3c-1b9e-5c2e-644b-39c9c6a06b39",
+      "voiceRole": "Male",
+      "voiceName": "de-DE-ConradNeural",
+      "ttsText": "guten Tag"
+    },
+    {
+      "path": "de-DE/guten-Tag-Mia.mp3",
+      "kind": "word",
+      "sourceKey": "8eeffa3c-1b9e-5c2e-644b-39c9c6a06b39",
+      "voiceRole": "Female",
+      "voiceName": "de-DE-KatjaNeural",
+      "ttsText": "guten Tag"
+    },
+    {
+      "path": "de-DE/guten-Tag-Lars.mp3",
+      "kind": "word",
+      "sourceKey": "8eeffa3c-1b9e-5c2e-644b-39c9c6a06b39",
+      "voiceRole": "Child",
+      "voiceName": "de-DE-KasperNeural",
+      "ttsText": "guten Tag"
     },
     {
       "path": "de-DE/s-000001-Max.mp3",

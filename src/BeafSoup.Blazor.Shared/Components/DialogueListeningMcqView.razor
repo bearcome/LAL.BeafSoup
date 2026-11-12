@@ -2,12 +2,13 @@
 @inherits GradedExerciseBase
 @inject IUiTextProvider UiText
 
-@* 场景对话听力选择题：播放完整对话（逐行连续播放），回答理解题；重播有上限且不惩罚。 *@
+@* 场景对话听力选择题：播放完整对话（逐行连续播放），回答理解题；题目加载后自动播放首行音频，重播有上限且不惩罚。 *@
 <div class="card">
-    <div style="display:flex; gap: var(--spacing-2); align-items:center;">
-        <AudioButton Url="@CurrentLineAudio" />
-        <button @onclick="ReplayAsync" disabled="@(_replayCount >= MaxReplay)">
-            @UiText.Text("ui.audio.play") (@_replayCount/@MaxReplay)
+    <div class="listening-audio">
+        <AudioButton @ref="_audio" Url="@CurrentLineAudio" AutoPlay="true" />
+        <button class="button-secondary listening-replay" @onclick="ReplayAsync"
+                disabled="@(_replayCount >= MaxReplay || _replaying)">
+            @UiText.Text("ui.audio.replay") <span class="replay-count">@_replayCount/@MaxReplay</span>
         </button>
     </div>
     <h2 style="margin-top: var(--spacing-4);">@(Payload.GetProperty("questionText").GetString())</h2>
@@ -25,7 +26,9 @@
 </div>
 
 @code {
+    private AudioButton? _audio;
     private int _replayCount;
+    private bool _replaying;
     private string? _selected;
 
     private IEnumerable<JsonElement> Lines => Payload.GetProperty("lines").EnumerateArray();
@@ -35,10 +38,21 @@
         ? Lines.First().GetProperty("revealedAudioUrl").GetString()
         : null;
 
+    /// <summary>重播按钮真正触发音频播放，只有真正开始播放才计数；达到上限后按钮禁用。</summary>
     private async Task ReplayAsync()
     {
-        _replayCount++;
-        await Task.CompletedTask; // 逐行连续播放由 AudioButton 逐个触发；重播仅计数（不惩罚）
+        if (_audio is null || _replayCount >= MaxReplay || _replaying)
+            return;
+        _replaying = true;
+        try
+        {
+            if (await _audio.TryPlayAsync())
+                _replayCount++;
+        }
+        finally
+        {
+            _replaying = false;
+        }
     }
 
     private async Task SelectAsync(JsonElement option)

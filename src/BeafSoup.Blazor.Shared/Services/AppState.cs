@@ -8,6 +8,7 @@ public class AppState
 {
     private readonly ILearningProfileAppService _profiles;
     private readonly ILearningProgressQuery _progress;
+    private Task? _profileInitialization;
 
     public AppState(ILearningProfileAppService profiles, ILearningProgressQuery progress)
         => (_profiles, _progress) = (profiles, progress);
@@ -20,6 +21,24 @@ public class AppState
     {
         if (CurrentProfile is not null)
             return;
+        // 布局与页面可能同时进入初始化：共享同一任务，避免重复创建配置与竞态回调
+        var initialization = _profileInitialization ?? InitializeProfileAsync(userId, cancellationToken);
+        _profileInitialization = initialization;
+        try
+        {
+            await initialization;
+        }
+        catch
+        {
+            // 失败不能固化为永久缓存；下一次进入页面应能重试
+            if (ReferenceEquals(_profileInitialization, initialization))
+                _profileInitialization = null;
+            throw;
+        }
+    }
+
+    private async Task InitializeProfileAsync(Guid userId, CancellationToken cancellationToken)
+    {
         var mine = await _profiles.GetMineAsync(userId, cancellationToken);
         CurrentProfile ??= mine.FirstOrDefault();
         if (CurrentProfile is null)
@@ -53,6 +72,7 @@ public class AppState
     {
         CurrentProfile = null;
         Progress = null;
+        _profileInitialization = null;
         Changed?.Invoke();
     }
 }

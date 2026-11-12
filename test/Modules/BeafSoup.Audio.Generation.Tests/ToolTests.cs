@@ -42,6 +42,44 @@ public class SsmlBuilderTests
     }
 }
 
+public sealed class AudioStaticAssetTests
+{
+    [Fact]
+    public void Generator_output_is_client_media_audio_directory()
+    {
+        var root = RepositoryRoot();
+        using var config = System.Text.Json.JsonDocument.Parse(File.ReadAllText(
+            Path.Combine(root, "src/BeafSoup.Audio.Generation/appsettings.json")));
+        var configured = config.RootElement.GetProperty("outputDirectory").GetString()!;
+        var toolBase = Path.Combine(root, "src/BeafSoup.Audio.Generation/bin/Debug/net11.0");
+
+        Path.GetFullPath(configured, toolBase).Should().Be(Path.GetFullPath(Path.Combine(
+            root, "src/BeafSoup.Blazor.Client/wwwroot/media/audio")));
+    }
+
+    [Fact]
+    public void Every_manifest_file_exists_in_client_static_directory()
+    {
+        var root = RepositoryRoot();
+        var output = Path.Combine(root, "src/BeafSoup.Blazor.Client/wwwroot/media/audio");
+        using var manifest = System.Text.Json.JsonDocument.Parse(
+            File.ReadAllText(Path.Combine(output, "manifest.json")));
+        var files = manifest.RootElement.GetProperty("files").EnumerateArray()
+            .Select(item => item.GetString()!).ToArray();
+
+        files.Should().NotBeEmpty();
+        files.Should().OnlyContain(path => File.Exists(Path.Combine(output, path)));
+    }
+
+    private static string RepositoryRoot()
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "LAL.BeafSoup.slnx")))
+            directory = directory.Parent;
+        return directory?.FullName ?? throw new DirectoryNotFoundException("未找到解决方案根目录。");
+    }
+}
+
 public class StableGuidTests
 {
     [Fact]

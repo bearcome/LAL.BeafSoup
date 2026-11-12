@@ -90,6 +90,84 @@ public static class DatabaseSeeder
             $"本地化文本 {validated.LocalizedTexts.Count}。");
     }
 
+    /// <summary>
+    /// 仅同步本地化数据（界面文案语义键、文本与音色配置），不清空课程与学习数据；
+    /// 用于种子文案更新后的幂等回填，避免重新 seed --force 波及课程表。
+    /// </summary>
+    public static async Task SyncLocalizationAsync(string connectionString, string seedDirectory)
+    {
+        var seed = SeedLoader.Load(seedDirectory);
+        var result = SeedValidator.Validate(seed);
+        if (!result.IsValid)
+            throw new InvalidDataException($"种子数据校验失败：{string.Join("；", result.Errors)}");
+        var validated = result.Value!;
+
+        await MigrationRunner.MigrateAsync(connectionString);
+        await using var context = new LocalizationDbContext(
+            MigrationRunner.CreateOptions<LocalizationDbContext>(connectionString, "__EFMigrationsHistory_Localization"));
+        await using var transaction = await context.Database.BeginTransactionAsync();
+
+        var now = DateTime.UtcNow;
+        var uiKeys = validated.UiKeys.Select(key => key.Value).ToHashSet(StringComparer.Ordinal);
+
+        // 语义键：只补 UI 域；已存在的键保持创建时间，不重复插入
+        var existingKeys = await context.SemanticKeys.ToDictionaryAsync(row => row.Key, StringComparer.Ordinal);
+        var addedKeys = 0;
+        foreach (var key in validated.UiKeys)
+        {
+            if (existingKeys.TryGetValue(key.Value, out var row))
+            {
+                row.Domain = "ui";
+                continue;
+            }
+            context.SemanticKeys.Add(LocalizationPersistenceMapper.ToRow(key, "ui", now));
+            addedKeys++;
+        }
+
+        // 文本：按 (key, language) 更新或插入；仅处理 ui 域语义键，不触碰课程/句子文本
+        var existingTexts = await context.LocalizedTexts.ToDictionaryAsync(row => (row.Key, row.LanguageCode));
+        var addedTexts = 0;
+        var updatedTexts = 0;
+        foreach (var text in validated.LocalizedTexts.Where(text => uiKeys.Contains(text.Key.Value)))
+        {
+            if (existingTexts.TryGetValue((text.Key.Value, text.Language.Value), out var row))
+            {
+                if (row.Text == text.Text && row.Revision == text.Revision)
+                    continue;
+                // 文本更新必须递增修订号，不回退到种子文件的初始修订
+                row.Text = text.Text;
+                row.Revision = Math.Max(row.Revision + 1, text.Revision);
+                updatedTexts++;
+                continue;
+            }
+            context.LocalizedTexts.Add(LocalizationPersistenceMapper.ToRow(text));
+            addedTexts++;
+        }
+
+        // 音色配置：角色映射变化时覆盖，缺失时补齐
+        var existingVoices = await context.VoiceRoleConfigs.ToDictionaryAsync(row => (row.LanguageCode, row.Role));
+        var writtenVoices = 0;
+        foreach (var voice in validated.VoiceRoles)
+        {
+            if (existingVoices.TryGetValue((voice.Language.Value, voice.Role.ToString()), out var row))
+            {
+                if (row.AssetFileToken == voice.AssetFileToken && row.TtsVoiceName == voice.TtsVoiceName)
+                    continue;
+                row.AssetFileToken = voice.AssetFileToken;
+                row.TtsVoiceName = voice.TtsVoiceName;
+                writtenVoices++;
+                continue;
+            }
+            context.VoiceRoleConfigs.Add(LocalizationPersistenceMapper.ToRow(voice));
+            writtenVoices++;
+        }
+
+        await context.SaveChangesAsync();
+        await transaction.CommitAsync();
+        Console.WriteLine($"本地化同步完成：新增语义键 {addedKeys}，新增文本 {addedTexts}，" +
+            $"更新文本 {updatedTexts}，写入音色配置 {writtenVoices}。");
+    }
+
     private static BeafSoup.Exercises.EntityFrameworkCore.ExerciseInstanceRow ToRow(BeafSoup.Exercises.ExerciseInstance instance)
         => new()
         {

@@ -9,22 +9,34 @@
 @inject NavigationManager Navigation
 
 <nav class="app-nav">
-    <a href="/"><T Key="ui.nav.home" /></a>
-    <a href="/tree"><T Key="ui.nav.tree" /></a>
-    <a href="/trainer"><T Key="ui.nav.trainer" /></a>
-    <AuthorizeView>
-        <Authorized>
-            <a href="/settings"><T Key="ui.nav.settings" /></a>
-            <button @onclick="LogoutAsync"><T Key="ui.nav.logout" /></button>
-        </Authorized>
-        <NotAuthorized>
-            <a href="/login"><T Key="ui.nav.login" /></a>
-        </NotAuthorized>
-    </AuthorizeView>
-    <ThemeToggle />
+    <div class="app-nav-inner">
+        <a class="app-brand" href="/" aria-label="@UiText.Text("ui.app.title")">
+            <svg class="brand-mark" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+                <path d="M9 9h16a6 6 0 0 1 6 6v7a6 6 0 0 1-6 6h-8l-7 5v-5H9a5 5 0 0 1-5-5V14a5 5 0 0 1 5-5Z" fill="currentColor" />
+                <path d="M12 15h11M12 20h7" stroke="var(--color-primary-contrast)" stroke-width="2.4" stroke-linecap="round" />
+                <path d="m29 6 1-3M34 9l3-2" stroke="var(--color-accent)" stroke-width="2.4" stroke-linecap="round" />
+            </svg>
+            <span><T Key="ui.app.brand" /></span>
+        </a>
+        <div class="nav-links">
+            <NavLink href="/" Match="NavLinkMatch.All"><T Key="ui.nav.home" /></NavLink>
+            <NavLink href="/tree"><T Key="ui.nav.tree" /></NavLink>
+            <NavLink href="/trainer"><T Key="ui.nav.trainer" /></NavLink>
+            <AuthorizeView>
+                <Authorized><NavLink href="/settings"><T Key="ui.nav.settings" /></NavLink></Authorized>
+            </AuthorizeView>
+        </div>
+        <div class="nav-actions">
+            <ThemeToggle />
+            <AuthorizeView>
+                <Authorized><button class="nav-logout" @onclick="LogoutAsync"><T Key="ui.nav.logout" /></button></Authorized>
+                <NotAuthorized><a class="nav-login" href="/login"><T Key="ui.nav.login" /></a></NotAuthorized>
+            </AuthorizeView>
+        </div>
+    </div>
 </nav>
 
-<main class="exercise-container">
+<main class="app-main">
     <ConnectivityBanner />
     <AuthorizeView>
         <Authorized><ProgressHeader /></Authorized>

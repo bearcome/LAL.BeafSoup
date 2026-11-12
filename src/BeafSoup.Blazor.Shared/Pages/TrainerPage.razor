@@ -8,140 +8,258 @@
 @inject IDictionaryCache Dictionary
 @inject IUiTextProvider UiText
 
-<h1><T Key="ui.trainer.title" /></h1>
-<ProgressHeader />
+<section class="trainer-page">
+    <header class="page-heading">
+        <p class="page-eyebrow">@TargetLanguage · FSRS</p>
+        <h1><T Key="ui.trainer.title" /></h1>
+        <p><T Key="ui.trainer.subtitle" /></p>
+    </header>
 
-@if (AppState.CurrentProfile is null)
-{
-    <p><T Key="ui.common.loading" /></p>
-}
-else if (_queue is null)
-{
-    <p><T Key="ui.common.loading" /></p>
-}
-else if (_current is not null && _currentEntry is not null)
-{
-    @* 复习卡：正面单词（音频/词性/原型提示），背面基础语言解释 + 全部形态表，1–4 评级 *@
-    <div class="card" @onclick="() => _flipped = !_flipped" style="cursor: pointer;">
-        @if (!_flipped)
-        {
-            <h2>@DisplayWord(_currentEntry)</h2>
-            <div style="color: var(--color-text-secondary);">@_currentEntry.PartOfSpeech</div>
-            @if (PrimaryLexeme(_currentEntry) is { } lexeme && lexeme.TryGetProperty("audioUrl", out var audio))
-            {
-                @* 阻止冒泡：点播放不应触发翻卡 *@
-                <div @onclick:stopPropagation="true">
-                    <AudioButton Url="@audio.GetString()" />
-                </div>
-            }
-            <p style="color: var(--color-text-secondary);">@UiText.Text("ui.trainer.flip")</p>
-        }
-        else
-        {
-            <h2>@DisplayWord(_currentEntry)</h2>
-            <p>@UiText.Text("ui.trainer.definition"): <strong>@BaseLemma(_currentEntry)</strong></p>
-            @if (PrimaryLexeme(_currentEntry) is { } lexeme)
-            {
-                <div>@UiText.Text("ui.trainer.forms")</div>
-                @if (lexeme.TryGetProperty("forms", out var forms))
-                {
-                    foreach (var paradigm in forms.EnumerateObject())
-                    {
-                        <div style="margin-top: var(--spacing-2);">
-                            <div style="color: var(--color-text-secondary); font-size: var(--font-size-small);">@paradigm.Name</div>
-                            <div>@string.Join(" · ", paradigm.Value.EnumerateArray().Select(s => s.GetString()))</div>
-                        </div>
-                    }
-                }
-            }
-        }
-    </div>
-
-    @if (_flipped)
+    @if (_errorKey is not null)
     {
-        <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap: var(--spacing-2); margin-top: var(--spacing-4);">
-            <button @onclick="() => RateAsync(1)">@UiText.Text("ui.trainer.rate.again")</button>
-            <button @onclick="() => RateAsync(2)">@UiText.Text("ui.trainer.rate.hard")</button>
-            <button @onclick="() => RateAsync(3)">@UiText.Text("ui.trainer.rate.good")</button>
-            <button @onclick="() => RateAsync(4)">@UiText.Text("ui.trainer.rate.easy")</button>
+        <div class="notice notice-error" role="alert">
+            <span>@UiText.Text(_errorKey)</span>
+            <button class="button-secondary" @onclick="InitializeAsync" disabled="@_loading">
+                <T Key="ui.common.retry" />
+            </button>
         </div>
     }
-}
-else if (_queue.Count == 0)
-{
-    <div class="card">
-        <p><T Key="ui.trainer.queue-empty" /></p>
-        <button @onclick="EnqueueNewAsync" disabled="@_enqueueing">@UiText.Text("ui.trainer.load-new")</button>
-    </div>
-}
-else
-{
-    <div class="card">@UiText.Text("ui.common.loading")</div>
-}
+
+    @if (_loading)
+    {
+        <div class="card loading-card" role="status">
+            <span class="loading-pulse" aria-hidden="true"></span>
+            <T Key="ui.common.loading" />
+        </div>
+    }
+    else if (_current is not null && _currentEntry is not null)
+    {
+        @* 复习卡：正面单词与自动播放的音频，背面基础语言解释和完整形态表 *@
+        <article class="trainer-card @(_flipped ? "is-flipped" : "")">
+            <div class="trainer-card-meta">
+                <span class="language-chip">@TargetLanguage</span>
+                <span>@_currentEntry.PartOfSpeech</span>
+            </div>
+
+            <h2>@DisplayWord(_currentEntry)</h2>
+            @if (PrimaryLexeme(_currentEntry) is { } primary && primary.TryGetProperty("audioUrl", out var audio))
+            {
+                <AudioButton Url="@audio.GetString()" AutoPlay="true" />
+            }
+
+            @if (!_flipped)
+            {
+                <div class="trainer-card-front">
+                    <p><T Key="ui.trainer.flip-hint" /></p>
+                    <button class="button-primary trainer-reveal" @onclick="() => _flipped = true">
+                        <T Key="ui.trainer.flip" />
+                    </button>
+                </div>
+            }
+            else
+            {
+                <div class="trainer-answer">
+                    <div class="trainer-definition">
+                        <span><T Key="ui.trainer.definition" /></span>
+                        <strong>@BaseLemma(_currentEntry)</strong>
+                    </div>
+                    @if (_forms is { } forms && (forms.HasRows || forms.Groups.Count > 0))
+                    {
+                        <div class="trainer-forms">
+                            <h3><T Key="ui.trainer.forms" /></h3>
+                            @if (forms.HasRows)
+                            {
+                                @* 动词：列头为动词人称，行头为时态（本地化名称） *@
+                                <table class="forms-table">
+                                    <thead>
+                                        <tr>
+                                            <th scope="col" class="form-corner"></th>
+                                            @for (var person = 0; person < VocabularyFormsTable.PersonKeys.Count; person++)
+                                            {
+                                                <th scope="col">@UiText.Text(VocabularyFormsTable.PersonKeys[person])</th>
+                                            }
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var row in forms.Rows)
+                                        {
+                                            <tr>
+                                                <th scope="row">@ParadigmLabel(row.ParadigmKey)</th>
+                                                @foreach (var cell in row.Cells)
+                                                {
+                                                    <td>@cell</td>
+                                                }
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            }
+                            @foreach (var group in forms.Groups)
+                            {
+                                <div class="form-group">
+                                    <div class="form-name">@ParadigmLabel(group.ParadigmKey)</div>
+                                    <div class="form-values">
+                                        @foreach (var slot in group.Cells)
+                                        {
+                                            <span>@slot</span>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                    @* 不提供难度选择：翻面确认后以 FSRS Good（3）推进 *@
+                    <button class="button-primary trainer-next" disabled="@_rating" @onclick="RateAsync">
+                        <T Key="ui.trainer.next" />
+                    </button>
+                </div>
+            }
+        </article>
+    }
+    else if (_current is not null)
+    {
+        <div class="card empty-state" role="alert">
+            <p><T Key="ui.trainer.card-missing" /></p>
+            <button class="button-primary" @onclick="InitializeAsync"><T Key="ui.common.retry" /></button>
+        </div>
+    }
+    else
+    {
+        <div class="card empty-state">
+            <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                <path d="M10 13h22a6 6 0 0 1 6 6v20H16a6 6 0 0 1-6-6V13Z" />
+                <path d="M16 9h22a4 4 0 0 1 4 4v20M17 21h13M17 27h9" />
+            </svg>
+            <h2><T Key="ui.trainer.queue-empty" /></h2>
+            <p><T Key="ui.trainer.empty-description" /></p>
+            <button class="button-primary" @onclick="InitializeAsync" disabled="@_loading">
+                <T Key="ui.trainer.load-new" />
+            </button>
+        </div>
+    }
+</section>
 
 @code {
     private IReadOnlyList<ReviewQueueItemDto>? _queue;
     private DictionaryEntry? _currentEntry;
     private ReviewQueueItemDto? _current;
+    private FormsTable? _forms;
     private bool _flipped;
-    private bool _enqueueing;
+    private bool _loading = true;
+    private bool _rating;
+    private string? _errorKey;
 
-    protected override async Task OnInitializedAsync()
+    [CascadingParameter] private Task<AuthenticationState>? AuthenticationState { get; set; }
+
+    protected override void OnInitialized() => AppState.Changed += OnAppStateChanged;
+
+    protected override Task OnInitializedAsync() => InitializeAsync();
+
+    private async Task InitializeAsync()
     {
-        AppState.Changed += OnAppStateChanged;
-        await Dictionary.EnsureLoadedAsync(CancellationToken.None);
-        await LoadQueueAsync();
+        if (_loading && _queue is not null)
+            return;
+        _loading = true;
+        _errorKey = null;
+        try
+        {
+            await EnsureProfileAsync();
+            if (AppState.CurrentProfile is null)
+                return;
+            await Dictionary.EnsureLoadedAsync(CancellationToken.None);
+            if (Dictionary.AllEntries.Count == 0)
+            {
+                _errorKey = "ui.trainer.dictionary-empty";
+                _queue = null;
+                return;
+            }
+            await LoadQueueCoreAsync(autoEnqueue: true);
+        }
+        catch (Exception exception) when (IsExpectedLoadException(exception))
+        {
+            _errorKey = "ui.trainer.error.load";
+            _queue = null;
+            _current = null;
+            _currentEntry = null;
+        }
+        finally
+        {
+            _loading = false;
+        }
     }
 
-    // 布局异步恢复学习配置后才触发：补拉复习队列，避免页面永远停在加载态
-    private void OnAppStateChanged()
-        => _ = InvokeAsync(async () =>
-        {
-            if (_queue is null)
-                await LoadQueueAsync();
-            StateHasChanged();
-        });
+    private async Task EnsureProfileAsync()
+    {
+        if (AppState.CurrentProfile is not null || AuthenticationState is null)
+            return;
+        var auth = await AuthenticationState;
+        var userId = auth.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (Guid.TryParse(userId, out var parsedUserId))
+            await AppState.EnsureProfileAsync(parsedUserId, CancellationToken.None);
+    }
+
+    private void OnAppStateChanged() => _ = InvokeAsync(StateHasChanged);
 
     public void Dispose() => AppState.Changed -= OnAppStateChanged;
 
-    private async Task LoadQueueAsync()
+    private async Task LoadQueueCoreAsync(bool autoEnqueue)
     {
         if (AppState.CurrentProfile is null)
             return;
         _queue = await Learning.GetDueQueueAsync(AppState.CurrentProfile.Id, limit: 50, CancellationToken.None);
+        if (_queue.Count == 0 && autoEnqueue)
+        {
+            // 首次进入也应有可学内容；服务端负责每日预算、已有卡过滤和概念去重
+            var candidates = Dictionary.AllEntries.Select(entry => entry.ConceptId).ToArray();
+            var inserted = await Learning.EnqueueNewCardsAsync(
+                AppState.CurrentProfile.Id, candidates, CancellationToken.None);
+            if (inserted > 0)
+                _queue = await Learning.GetDueQueueAsync(AppState.CurrentProfile.Id, limit: 50, CancellationToken.None);
+        }
         _current = _queue.FirstOrDefault();
         _currentEntry = _current is null ? null : Dictionary.FindById(_current.ConceptId);
+        _forms = BuildForms(_currentEntry);
         _flipped = false;
     }
 
-    private async Task EnqueueNewAsync()
+    private FormsTable? BuildForms(DictionaryEntry? entry)
     {
-        if (AppState.CurrentProfile is null || _enqueueing)
+        if (entry is null)
+            return null;
+        var lexeme = PrimaryLexeme(entry);
+        return lexeme.ValueKind is JsonValueKind.Object && lexeme.TryGetProperty("forms", out var forms)
+            ? VocabularyFormsTable.Build(forms, entry.PartOfSpeech)
+            : null;
+    }
+
+    private async Task RateAsync()
+    {
+        if (AppState.CurrentProfile is null || _current is null || _rating)
             return;
-        _enqueueing = true;
+        _rating = true;
+        _errorKey = null;
         try
         {
-            // 新卡候选由客户端从概念词典挑选（模块边界：Learning 不查词表），服务端按每日预算与既有卡过滤
-            var candidates = Dictionary.AllEntries.Select(e => e.ConceptId).ToArray();
-            await Learning.EnqueueNewCardsAsync(AppState.CurrentProfile.Id, candidates, CancellationToken.None);
-            await LoadQueueAsync();
+            var activityId = Guid.NewGuid();
+            // 单按钮推进：学习者翻面确认即视为记住，评级固定为 FSRS Good（3）
+            await Learning.RateAsync(AppState.CurrentProfile.Id, new RateReviewRequest(
+                _current.ConceptId, 3, activityId, CellId: null, IsCorrect: true), CancellationToken.None);
+            await AppState.RefreshProgressAsync(CancellationToken.None);
+            await LoadQueueCoreAsync(autoEnqueue: true);
+        }
+        catch (Exception exception) when (IsExpectedLoadException(exception))
+        {
+            _errorKey = "ui.trainer.error.load";
         }
         finally
         {
-            _enqueueing = false;
+            _rating = false;
         }
     }
 
-    private async Task RateAsync(int rating)
-    {
-        if (AppState.CurrentProfile is null || _current is null)
-            return;
-        var activityId = Guid.NewGuid();
-        await Learning.RateAsync(AppState.CurrentProfile.Id, new RateReviewRequest(
-            _current.ConceptId, rating, activityId, CellId: null, IsCorrect: rating > 1), CancellationToken.None);
-        await AppState.RefreshProgressAsync(CancellationToken.None);
-        await LoadQueueAsync();
-    }
+    private static bool IsExpectedLoadException(Exception exception)
+        => exception is HttpRequestException or JsonException or InvalidDataException
+            or FormatException or InvalidOperationException;
 
     private string TargetLanguage => AppState.CurrentProfile?.TargetLanguage ?? "de-DE";
     private string BaseLanguage => AppState.CurrentProfile?.BaseLanguage ?? "zh-CN";
@@ -166,4 +284,15 @@ else
             ? language.GetProperty("lexemes").EnumerateArray()
                 .First(l => l.GetProperty("isPrimary").GetBoolean()).GetProperty("lemma").GetString() ?? ""
             : "";
+
+    /// <summary>
+    /// 范式名走本地化数据层：数据中的范式键（如 indicative_present）含下划线，
+    /// 而语义键规范只允许连字符，因此先转换再查找；缺少文案时退回范式名本身。
+    /// </summary>
+    private string ParadigmLabel(string paradigmKey)
+    {
+        var key = $"ui.trainer.paradigm.{paradigmKey.Replace('_', '-')}";
+        var text = UiText.Text(key);
+        return text == key ? paradigmKey : text;
+    }
 }

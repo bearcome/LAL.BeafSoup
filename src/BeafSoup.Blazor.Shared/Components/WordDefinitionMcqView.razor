@@ -2,12 +2,12 @@
 @inherits GradedExerciseBase
 @inject IUiTextProvider UiText
 
-@* 单词释义选择题：4 选 1 即时判分；可点击播放单词音频作提示。 *@
+@* 单词释义选择题：4 选 1 即时判分；题目加载后自动播放单词音频，可手动重播。 *@
 <div class="card">
     <h2>@(Payload.GetProperty("wordText").GetString())</h2>
     @if (Payload.TryGetProperty("audioUrl", out var audio))
     {
-        <AudioButton Url="@audio.GetString()" />
+        <AudioButton Url="@audio.GetString()" AutoPlay="true" />
     }
     <div style="display:grid; gap: var(--spacing-2); margin-top: var(--spacing-4);">
         @foreach (var option in Options)

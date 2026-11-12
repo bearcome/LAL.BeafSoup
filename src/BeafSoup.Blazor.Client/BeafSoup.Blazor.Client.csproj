@@ -1,4 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
+  <PropertyGroup>
+    <!--
+      普通 dotnet run 不会提供 dotnet-watch 的浏览器工具端点；若仍生成这些仅调试用资产，
+      运行时会请求 /_framework/dotnet-browser-tools/hot-reload-settings.json 并得到 404。
+      仅当构建宿主（dotnet watch / IDE 热重载）显式启用时才生成。
+    -->
+    <EnableHotReloadInRuntimeConfigDevFile Condition="'$(EnableHotReloadInRuntimeConfigDevFile)' == ''">false</EnableHotReloadInRuntimeConfigDevFile>
+  </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" />
   </ItemGroup>

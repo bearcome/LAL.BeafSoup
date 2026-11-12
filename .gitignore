@@ -69,3 +69,4 @@ nunit-*.xml
 
 # 服务端机密配置：开发期 JWT 签名密钥等（ADR-006：密钥只存在于服务端机密配置）
 src/BeafSoup.HttpApi.Host/appsettings.Development.json
+/src/BeafSoup.Blazor.Client/wwwroot/media/audio/de-DE

@@ -3,6 +3,7 @@ using BeafSoup.Exercises;
 using BeafSoup.Blazor.Shared.Services;
 using BeafSoup.Learning;
 using Microsoft.AspNetCore.Components;
+using Microsoft.JSInterop;
 
 namespace BeafSoup.Blazor.Shared.Components;
 
@@ -11,6 +12,7 @@ public abstract class GradedExerciseBase : ComponentBase
 {
     [Inject] protected ExerciseApiClient Grading { get; set; } = default!;
     [Inject] protected AppState AppState { get; set; } = default!;
+    [Inject] protected IJSRuntime JsRuntime { get; set; } = default!;
 
     /// <summary>习题呈现（负载已经服务端校验）。</summary>
     [Parameter, EditorRequired] public ExercisePresentationDto Presentation { get; set; } = default!;
@@ -48,6 +50,7 @@ public abstract class GradedExerciseBase : ComponentBase
                 activityId, $"lesson-answer:{activityId}", AppState.CurrentProfile.Id,
                 answer.GetRawText(), LessonId is null ? null : null), CancellationToken.None);
             LastGrade = response;
+            await PlayFeedbackSoundAsync(response.Correct);
             await AppState.RefreshProgressAsync(CancellationToken.None);
             if (response.Correct)
                 await OnSolved.InvokeAsync(response);
@@ -55,6 +58,19 @@ public abstract class GradedExerciseBase : ComponentBase
         finally
         {
             GradingInProgress = false;
+        }
+    }
+
+    /// <summary>答对/答错提示音由浏览器即时合成；播放失败不影响判分展示与推进。</summary>
+    private async Task PlayFeedbackSoundAsync(bool correct)
+    {
+        try
+        {
+            await JsRuntime.InvokeVoidAsync("beafSoupAudio.playFeedback", correct ? "correct" : "wrong");
+        }
+        catch (Exception exception) when (exception is JSException or InvalidOperationException)
+        {
+            // 浏览器不支持音频上下文或被策略禁止：静默跳过提示音
         }
     }
 }

@@ -35,8 +35,22 @@ public sealed class DictionaryCache : IDictionaryCache
     public DictionaryCache(HttpClient http, string dictionaryUrl = "dictionary.json")
         => (_http, _dictionaryUrl) = (http, dictionaryUrl);
 
-    public Task EnsureLoadedAsync(CancellationToken cancellationToken)
-        => _loading ??= LoadAsync(cancellationToken);
+    public async Task EnsureLoadedAsync(CancellationToken cancellationToken)
+    {
+        if (_entries.Count > 0)
+            return;
+        var loading = _loading ??= LoadAsync(cancellationToken);
+        try
+        {
+            await loading;
+        }
+        finally
+        {
+            // 空结果或解析失败不永久缓存，页面上的重试可重新拉取静态词典
+            if (ReferenceEquals(_loading, loading) && _entries.Count == 0)
+                _loading = null;
+        }
+    }
 
     private async Task LoadAsync(CancellationToken cancellationToken)
     {

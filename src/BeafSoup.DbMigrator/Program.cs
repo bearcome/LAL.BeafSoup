@@ -8,15 +8,15 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BeafSoup.DbMigrator;
 
-/// <summary>数据库迁移与种子填充工具（第 2 阶段）。命令：migrate / seed / reset / export-dictionary。</summary>
+/// <summary>数据库迁移与种子填充工具（第 2 阶段）。命令：migrate / seed / sync-localization / reset / export-dictionary。</summary>
 public static class Program
 {
     public static async Task<int> Main(string[] args)
     {
         var command = args.FirstOrDefault(a => !a.StartsWith('-')) ?? "seed";
-        if (command is not ("migrate" or "seed" or "reset" or "export-dictionary"))
+        if (command is not ("migrate" or "seed" or "sync-localization" or "reset" or "export-dictionary"))
         {
-            Console.Error.WriteLine($"未知命令 '{command}'（可用：migrate / seed / reset / export-dictionary）。");
+            Console.Error.WriteLine($"未知命令 '{command}'（可用：migrate / seed / sync-localization / reset / export-dictionary）。");
             return 1;
         }
 
@@ -34,6 +34,9 @@ public static class Program
                     return 0;
                 case "seed":
                     await DatabaseSeeder.SeedAsync(connectionString, seedDirectory, replaceExisting: force);
+                    return 0;
+                case "sync-localization":
+                    await DatabaseSeeder.SyncLocalizationAsync(connectionString, seedDirectory);
                     return 0;
                 case "reset":
                     MigrationRunner.DeleteDatabaseFiles(connectionString);

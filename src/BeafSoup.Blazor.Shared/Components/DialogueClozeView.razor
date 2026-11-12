@@ -2,10 +2,10 @@
 @inherits GradedExerciseBase
 @inject IUiTextProvider UiText
 
-@* 补全对话：音频播放补全后的完整台词（绝不朗读说话人标签——标签仅展示）；按负载 responseMode 选择或输入。 *@
+@* 补全对话：音频播放补全后的完整台词（绝不朗读说话人标签——标签仅展示）；题目加载后自动播放首行音频。 *@
 <div class="card">
     <div style="display:flex; gap: var(--spacing-2);">
-        <AudioButton Url="@FirstRevealedAudio" />
+        <AudioButton Url="@FirstRevealedAudio" AutoPlay="true" />
     </div>
     @foreach (var line in Lines)
     {

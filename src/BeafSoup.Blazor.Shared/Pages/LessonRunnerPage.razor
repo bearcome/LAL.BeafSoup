@@ -10,6 +10,7 @@
 @inject IUiTextProvider UiText
 @inject NavigationManager Navigation
 
+<div class="exercise-container">
 @if (_error)
 {
     <div class="card" role="alert">@UiText.Text("ui.common.error.unavailable")</div>
@@ -30,13 +31,13 @@ else if (_finished)
 }
 else
 {
-    <ProgressHeader />
     <p>@UiText.Text(_lesson.TitleKey) · @(_currentIndex + 1)/@_presentations.Count</p>
     @* 逐题显示：页面只渲染当前题，不展示后续题目 *@
     <ExerciseView Presentation="_presentations[_currentIndex]"
                   LessonId="_lesson.LessonId"
                   OnSolved="OnSolvedAsync" />
 }
+</div>
 
 @code {
     [Parameter] public string LessonId { get; set; } = "";
