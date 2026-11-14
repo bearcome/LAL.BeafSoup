@@ -1,0 +1,207 @@
+@inject IUiTextProvider UiText
+@inject IJSRuntime JsRuntime
+@inject IConfiguration Configuration
+@inject NavigationManager Navigation
+
+@* 顺序音频播放：按给定顺序逐条播放（对话整段、短文整篇），同一时刻只用一个 audio 元素。 *@
+<div class="audio-control">
+    <button class="audio-button @(_playing ? "is-playing" : "")" @onclick="ToggleAsync"
+            aria-label="@Label" title="@Label">
+        @if (_playing)
+        {
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2" /></svg>
+        }
+        else
+        {
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                <path d="M11 5 6 9H3v6h3l5 4V5Z" />
+                <path d="M15 9a4 4 0 0 1 0 6M18 6a8 8 0 0 1 0 12" />
+            </svg>
+        }
+    </button>
+    @if (_failed)
+    {
+        <span class="audio-error" role="status"><T Key="ui.audio.error" /></span>
+    }
+</div>
+<audio @ref="_audio" src="@CurrentUrl" preload="none"
+       @onended="OnEnded" @onerror="OnError"></audio>
+
+@code {
+    /// <summary>按顺序播放的音频相对路径集合（空项由组件过滤）。</summary>
+    [Parameter, EditorRequired]
+    public IReadOnlyList<string?> Urls { get; set; } = [];
+
+    /// <summary>渲染后自动从头播放一次；浏览器拒绝时静默。</summary>
+    [Parameter]
+    public bool AutoPlay { get; set; }
+
+    /// <summary>按钮无障碍名称的本地化键。</summary>
+    [Parameter]
+    public string LabelKey { get; set; } = "ui.audio.play-sequence";
+
+    /// <summary>播放请求序号：值变化时重新允许自动播放。</summary>
+    [Parameter]
+    public int PlayRequest { get; set; }
+
+    private ElementReference _audio;
+    private List<string> _urls = [];
+    private string _signature = "";
+    private string? _autoPlayedSignature;
+    private int _lastPlayRequest;
+    private int _index;
+    private bool _playing;
+    private bool _failed;
+    private bool _usingFallback;
+    private bool _pendingStart;
+    private bool _showError;
+
+    private string Label => UiText.Text(_playing ? "ui.audio.playing" : LabelKey);
+
+    private string? CurrentAsset => _index >= 0 && _index < _urls.Count ? _urls[_index] : null;
+
+    // 补全版资产缺失时回退到同句子的完整句音频（与 AudioButton 一致）
+    private string? EffectiveAsset => _usingFallback && CurrentAsset?.Contains("-revealed-", StringComparison.Ordinal) == true
+        ? CurrentAsset.Replace("-revealed-", "-", StringComparison.Ordinal)
+        : CurrentAsset;
+
+    private string? CurrentUrl => MediaUrlResolver.Resolve(
+        EffectiveAsset, Configuration["MediaBaseUrl"], Navigation.BaseUri);
+
+    protected override void OnParametersSet()
+    {
+        var signature = string.Join("|", Urls);
+        if (signature != _signature || PlayRequest != _lastPlayRequest)
+        {
+            _signature = signature;
+            _lastPlayRequest = PlayRequest;
+            _urls = Urls.Where(u => !string.IsNullOrWhiteSpace(u)).Select(u => u!).ToList();
+            _autoPlayedSignature = null;
+            ResetPlayback();
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (AutoPlay && !_playing && _urls.Count > 0 && _autoPlayedSignature != _signature)
+        {
+            _autoPlayedSignature = _signature;
+            Begin(showError: false);
+            return;
+        }
+        if (!_pendingStart)
+            return;
+        _pendingStart = false;
+        await PlayCurrentAsync();
+    }
+
+    private async Task ToggleAsync()
+    {
+        if (_playing)
+        {
+            await StopAsync();
+            return;
+        }
+        if (_urls.Count == 0)
+            return;
+        Begin(showError: true);
+    }
+
+    private void Begin(bool showError)
+    {
+        _index = 0;
+        _usingFallback = false;
+        _failed = false;
+        _showError = showError;
+        _playing = true;
+        _pendingStart = true;
+        StateHasChanged();
+    }
+
+    private async Task PlayCurrentAsync()
+    {
+        if (CurrentUrl is null)
+        {
+            Advance();
+            return;
+        }
+        try
+        {
+            var started = await JsRuntime.InvokeAsync<bool>("beafSoupAudio.play", _audio);
+            if (!started)
+            {
+                _playing = false;
+                _failed = _showError;
+                StateHasChanged();
+            }
+        }
+        catch (Exception exception) when (exception is JSException or InvalidOperationException)
+        {
+            _playing = false;
+            _failed = _showError;
+            StateHasChanged();
+        }
+    }
+
+    private void OnEnded() => Advance();
+
+    private void OnError()
+    {
+        // 先尝试把 -revealed- 资产回退为完整句音频，再跳到下一条
+        if (!_usingFallback && CurrentAsset?.Contains("-revealed-", StringComparison.Ordinal) == true)
+        {
+            _usingFallback = true;
+            _pendingStart = true;
+            StateHasChanged();
+            return;
+        }
+        Advance();
+    }
+
+    private void Advance()
+    {
+        _index++;
+        _usingFallback = false;
+        if (_index >= _urls.Count)
+        {
+            ResetPlayback();
+            return;
+        }
+        _pendingStart = true;
+        StateHasChanged();
+    }
+
+    private async Task StopAsync()
+    {
+        try
+        {
+            await JsRuntime.InvokeVoidAsync("beafSoupAudio.stop", _audio);
+        }
+        catch (Exception exception) when (exception is JSException or InvalidOperationException)
+        {
+            // 浏览器不支持音频控制：按已停止处理即可
+        }
+        ResetPlayback();
+        StateHasChanged();
+    }
+
+    private void ResetPlayback()
+    {
+        _playing = false;
+        _failed = false;
+        _index = 0;
+        _usingFallback = false;
+        _pendingStart = false;
+    }
+
+    /// <summary>供父组件触发“从第一行重播”；返回是否已排入播放（无音频时为 false）。</summary>
+    public async Task<bool> TryPlayFromStartAsync()
+    {
+        if (_urls.Count == 0)
+            return false;
+        if (_playing)
+            await StopAsync();
+        Begin(showError: true);
+        return true;
+    }
+}

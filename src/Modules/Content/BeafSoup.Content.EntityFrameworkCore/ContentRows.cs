@@ -27,6 +27,9 @@ public sealed class SentenceTokenRow
     public int Length { get; set; }
     public string Kind { get; set; } = "";
     public Guid? FormCellId { get; set; }
+
+    /// <summary>发布期消歧后的概念键（词↔句互链）；无词汇链接时为空。</summary>
+    public string? ConceptKey { get; set; }
 }
 
 /// <summary>跨词元短语标注行：索引绑定文本修订号，修订失配即失效。</summary>

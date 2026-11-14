@@ -30,7 +30,7 @@
 ## 内容模块（Content）
 
 - **`Course` → `SkillUnit`（技能树节点）→ `Lesson`**（需求 1）；学习者进度不写回课程定义。
-- **`Sentence`**（实体）：引用句子 `SemanticKey`；本地化全文只存于 `LocalizedText`。每种语言独立拥有带文本修订号的 `SentenceTokenization`。每个 `SentenceToken` 以零基 Unicode scalar 起点/长度索引全文，不复制原文；词、空白、标点和非词汇发音片段按序无重叠且完整覆盖全文。词元可无词汇链接，或链接一个已消歧的 `ParadigmCellId`。
+- **`Sentence`**（实体）：引用句子 `SemanticKey`；本地化全文只存于 `LocalizedText`。每种语言独立拥有带文本修订号的 `SentenceTokenization`。每个 `SentenceToken` 以零基 Unicode scalar 起点/长度索引全文，不复制原文；词、空白、标点和非词汇发音片段按序无重叠且完整覆盖全文。词元可无词汇链接，或链接一个已消歧的 `ParadigmCellId`；同时保存发布期消歧后的 `ConceptKey`，供词↔句互链（单词详情页例句）按稳定概念引用查询，不依赖模糊表面匹配。
 - **短语标注**：`SentenceSpanLink { sentenceId, languageCode, startTokenIndex, tokenCount, lexicalEntryRef }` 表达跨词元短语；允许词元级与短语级链接重叠。索引绑定语言和 `LocalizedText` 修订号，仅适用于该版本；全文变更时旧标注失效，必须重新校验或生成。
 - **`Dialogue`**（实体）：有序 `DialogueLine { speakerLabel（仅展示）, sentenceId, voiceRole }` 列表；说话人标签永不进入 TTS 输入。每行的音频文本来自对应语言版本。
 - **`Essay`**（短文）：有序 `sentenceId` 列表；音频由句子资产拼接，不生成独立 TTS 文件。
@@ -59,7 +59,9 @@
 
 ## 身份与使用统计模块（Identity / UsageAnalytics）
 
-- **`UserAccount`**（聚合根）：稳定 `UserId`、账户状态及 UTC 注册时间。登录身份由可替换的身份提供方管理，并通过独立身份关联映射到 `UserId`；同一账户可关联多个提供方，提供方凭据不进入领域对象或日志。
+- **`UserAccount`**（聚合根）：稳定 `UserId`、账户状态、UTC 注册时间与邮箱验证时间（`EmailVerifiedAtUtc`，null = 未验证）；登录身份由可替换的身份提供方管理，并通过独立身份关联映射到 `UserId`；同一账户可关联多个提供方，提供方凭据不进入领域对象或日志。注销时移除全部身份关联并标记删除，仅保留匿名注册事实（ADR-008）。
+- **`AccountToken`**（实体）：一次性验证码/重置码，只保存带盐散列，含有效期、使用时间与错误尝试次数；一次性、限时、错误尝试达上限即作废。明文验证码只出现在邮件中。
+- **`AccountRetentionPolicy`**（值对象）：会话记录与账户令牌的保留期，只用于运维清理任务；学习事实随账户存续，不在清理范围。
 - **权限策略**：初期每个有效注册账户默认可使用全部普通学习功能，不设置普通用户之间的功能等级；账户数据的所有权校验始终启用。权限按稳定权限标识建模，由服务端策略判定；后续可引入角色/策略映射。管理员与统计查询权限不包含在普通学习权限中，默认拒绝。
 - **`UserSession`**（服务端会话记录）：记录 `SessionId`、`UserId`、开始时间、最后一次有效心跳和会话结束/过期状态。客户端时间不作为统计依据；在线用户按有效会话中的不同 `UserId` 去重。
 - **使用统计**：注册总数、有效账户数、在线账户数、在线会话数和累计/分时段在线时长是 Identity/UsageAnalytics 的只读投影，不是学习域事实。统计事件以服务端接受的账户、会话和学习活动为来源。

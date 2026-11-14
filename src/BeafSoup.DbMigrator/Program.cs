@@ -1,6 +1,8 @@
 using System.Text.Json;
 using BeafSoup.Audio.Generation;
 using BeafSoup.Content.EntityFrameworkCore;
+using BeafSoup.Identity;
+using BeafSoup.Identity.EntityFrameworkCore;
 using BeafSoup.Localization.EntityFrameworkCore;
 using BeafSoup.Vocabulary.EntityFrameworkCore;
 using Microsoft.Data.Sqlite;
@@ -8,15 +10,15 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BeafSoup.DbMigrator;
 
-/// <summary>数据库迁移与种子填充工具（第 2 阶段）。命令：migrate / seed / sync-localization / reset / export-dictionary。</summary>
+/// <summary>数据库迁移与种子填充工具（第 2 阶段）。命令：migrate / seed / sync-localization / reset / export-dictionary / purge。</summary>
 public static class Program
 {
     public static async Task<int> Main(string[] args)
     {
         var command = args.FirstOrDefault(a => !a.StartsWith('-')) ?? "seed";
-        if (command is not ("migrate" or "seed" or "sync-localization" or "reset" or "export-dictionary"))
+        if (command is not ("migrate" or "seed" or "sync-localization" or "reset" or "export-dictionary" or "purge"))
         {
-            Console.Error.WriteLine($"未知命令 '{command}'（可用：migrate / seed / sync-localization / reset / export-dictionary）。");
+            Console.Error.WriteLine($"未知命令 '{command}'（可用：migrate / seed / sync-localization / reset / export-dictionary / purge）。");
             return 1;
         }
 
@@ -42,6 +44,8 @@ public static class Program
                     MigrationRunner.DeleteDatabaseFiles(connectionString);
                     await DatabaseSeeder.SeedAsync(connectionString, seedDirectory, replaceExisting: false);
                     return 0;
+                case "purge":
+                    return await PurgeAsync(connectionString, args, config);
                 default:
                     var outputPath = ValueOf(args, "--output") ?? "dictionary.json";
                     await DictionaryExporter.ExportAsync(connectionString, outputPath);
@@ -56,15 +60,39 @@ public static class Program
         }
     }
 
+    /// <summary>数据保留期清理（ADR-008）：仅删除超期的已结束会话与已关闭账户令牌；幂等。</summary>
+    private static async Task<int> PurgeAsync(string connectionString, string[] args, MigratorConfig config)
+    {
+        var sessionDays = int.TryParse(ValueOf(args, "--session-retention-days"), out var s)
+            ? s : config.EndedSessionRetentionDays;
+        var tokenDays = int.TryParse(ValueOf(args, "--token-retention-days"), out var t)
+            ? t : config.AccountTokenRetentionDays;
+        var policy = AccountRetentionPolicy.Create(sessionDays, tokenDays);
+
+        await MigrationRunner.MigrateAsync(connectionString);
+        await using var context = new IdentityDbContext(
+            MigrationRunner.CreateOptions<IdentityDbContext>(connectionString, "__EFMigrationsHistory_Identity"));
+        var (sessions, tokens) = await AccountRetentionPurger.PurgeAsync(
+            context, policy, DateTime.UtcNow, CancellationToken.None);
+        Console.WriteLine($"保留期清理完成：删除会话记录 {sessions} 条，账户令牌 {tokens} 条" +
+            $"（会话保留 {sessionDays} 天，令牌保留 {tokenDays} 天）。");
+        return 0;
+    }
+
     private static MigratorConfig LoadConfig()
     {
         var path = Path.Combine(AppContext.BaseDirectory, "appsettings.json");
         if (!File.Exists(path))
-            return new MigratorConfig("Data Source=beafsoup.db", "data/seed");
+            return new MigratorConfig("Data Source=beafsoup.db", "data/seed", 90, 7);
         var json = JsonSerializer.Deserialize<JsonElement>(File.ReadAllText(path));
+        var retention = json.TryGetProperty("retention", out var r) ? r : default;
         return new MigratorConfig(
             json.TryGetProperty("connectionString", out var cs) ? cs.GetString()! : "Data Source=beafsoup.db",
-            json.TryGetProperty("seedDirectory", out var seed) ? seed.GetString()! : "data/seed");
+            json.TryGetProperty("seedDirectory", out var seed) ? seed.GetString()! : "data/seed",
+            retention.ValueKind is JsonValueKind.Object && retention.TryGetProperty("endedSessionRetentionDays", out var sd)
+                ? sd.GetInt32() : 90,
+            retention.ValueKind is JsonValueKind.Object && retention.TryGetProperty("accountTokenRetentionDays", out var td)
+                ? td.GetInt32() : 7);
     }
 
     private static string? ValueOf(string[] args, string name)
@@ -73,5 +101,7 @@ public static class Program
         return index >= 0 && index + 1 < args.Length ? args[index + 1] : null;
     }
 
-    private sealed record MigratorConfig(string ConnectionString, string SeedDirectory);
+    private sealed record MigratorConfig(
+        string ConnectionString, string SeedDirectory,
+        int EndedSessionRetentionDays, int AccountTokenRetentionDays);
 }

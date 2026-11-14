@@ -11,3 +11,4 @@ ADR 索引。每份 ADR 包含：状态（提议/已接受/已废弃）、背景
 | [ADR-005](adr/ADR-005-sqlite-authority-database.md) | SQLite 作为服务端权威数据库 | 已接受 |
 | [ADR-006](adr/ADR-006-identity-provider.md) | 身份提供方、令牌与并发会话策略 | 已接受 |
 | [ADR-007](adr/ADR-007-presence-lease.md) | 在线心跳、会话租约与统计口径参数 | 已接受 |
+| [ADR-008](adr/ADR-008-account-lifecycle-and-retention.md) | 账户生命周期：邮箱验证、密码找回、注销、数据导出与保留期 | 已接受 |

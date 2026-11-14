@@ -1,13 +1,16 @@
-@using System.Text
-@* 句子渲染：词级可点击（点词弹层），空位渲染为占位；不复制数据层之外的文本逻辑。 *@
-<span>
-    @foreach (var segment in Segments)
+@using System.Text.Json
+@using BeafSoup.Blazor.Shared.Services
+@inject IDictionaryCache Dictionary
+
+@* 句子渲染：仅对能在概念词典中命中的词/短语应用链接样式；最长匹配短语整体可点击。 *@
+<span class="sentence" lang="@Language">
+    @foreach (var segment in _segments)
     {
         if (segment.IsBlank)
         {
-            <span style="letter-spacing: 2px; color: var(--color-text-secondary);">@segment.Text</span>
+            <span class="sentence-blank">@segment.Text</span>
         }
-        else if (segment.IsWord)
+        else if (segment.HasLink)
         {
             <WordInspector Text="@segment.Text" Language="@Language" />
         }
@@ -26,45 +29,43 @@
     [Parameter] public int BlankStart { get; set; }
     [Parameter] public int BlankLength { get; set; }
 
-    private sealed record Segment(string Text, bool IsWord, bool IsBlank);
+    private bool _dictionaryReady;
+    private string _lastText = "";
+    private string _lastLanguage = "";
+    private int _lastBlankStart = -1;
+    private int _lastBlankLength = -1;
+    private IReadOnlyList<SentenceSegment> _segments = [];
 
-    private IEnumerable<Segment> Segments
+    protected override async Task OnInitializedAsync()
     {
-        get
+        try
         {
-            var hasBlank = BlankLength > 0 && BlankStart + BlankLength <= Text.Length;
-            var spans = new List<(int Start, int End, bool Blank)>();
-            if (hasBlank)
-                spans.Add((BlankStart, BlankStart + BlankLength, true));
+            await Dictionary.EnsureLoadedAsync(CancellationToken.None);
+            _dictionaryReady = true;
+        }
+        catch (Exception exception) when (exception is HttpRequestException or InvalidDataException or JsonException)
+        {
+            // 词典不可用：句子仍可阅读，只是不显示可点击词
+            _dictionaryReady = false;
+        }
+        RebuildSegments();
+    }
 
-            var position = 0;
-            while (position < Text.Length)
-            {
-                var inBlank = hasBlank && position >= BlankStart && position < BlankStart + BlankLength;
-                if (inBlank)
-                {
-                    var blankEnd = BlankStart + BlankLength;
-                    yield return new Segment(new string('_', Math.Max(2, blankEnd - BlankStart)), IsWord: false, IsBlank: true);
-                    position = blankEnd;
-                    continue;
-                }
-                // 空白/标点直接输出；连续字母（含变音符号）组成可点词
-                if (char.IsLetter(Text[position]))
-                {
-                    var start = position;
-                    while (position < Text.Length && char.IsLetter(Text[position]))
-                        position++;
-                    yield return new Segment(Text[start..position], IsWord: true, IsBlank: false);
-                }
-                else
-                {
-                    var start = position;
-                    while (position < Text.Length && !char.IsLetter(Text[position])
-                        && !(hasBlank && position >= BlankStart && position < BlankStart + BlankLength))
-                        position++;
-                    yield return new Segment(Text[start..position], IsWord: false, IsBlank: false);
-                }
-            }
+    protected override void OnParametersSet()
+    {
+        if (_lastText != Text || _lastLanguage != Language
+            || _lastBlankStart != BlankStart || _lastBlankLength != BlankLength)
+        {
+            _lastText = Text;
+            _lastLanguage = Language;
+            _lastBlankStart = BlankStart;
+            _lastBlankLength = BlankLength;
+            RebuildSegments();
         }
     }
+
+    private void RebuildSegments()
+        => _segments = SentenceSegmenter.Build(
+            Text, BlankStart, BlankLength,
+            phrase => _dictionaryReady && Dictionary.FindBySurface(phrase, Language).Count > 0);
 }

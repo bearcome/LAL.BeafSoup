@@ -27,18 +27,46 @@
     <p role="alert" style="color: var(--color-error);">@UiText.Text(_errorKey)</p>
 }
 
+@if (_needsVerification)
+{
+    @* 未验证邮箱：直接提供验证入口（邮箱预填）与重发入口 *@
+    <p>
+        <a href="@VerifyUrl"><T Key="ui.auth.verify.submit" /></a>
+    </p>
+    <button class="button-secondary" @onclick="ResendAsync" disabled="@_resending">
+        <T Key="ui.auth.verify.resend" />
+    </button>
+    @if (_resent)
+    {
+        <p role="status"><T Key="ui.auth.verify.sent" /></p>
+    }
+}
+
 <p><a href="/register"><T Key="ui.auth.link.to-register" /></a></p>
+<p><a href="/forgot-password"><T Key="ui.auth.link.forgot-password" /></a></p>
+<p class="legal-note">
+    <a href="/terms"><T Key="ui.legal.terms.link" /></a>
+    <span aria-hidden="true">·</span>
+    <a href="/privacy"><T Key="ui.legal.privacy.link" /></a>
+</p>
 
 @code {
     private readonly LoginModel _model = new();
     private string? _errorKey;
+    private bool _needsVerification;
+    private bool _resending;
+    private bool _resent;
 
     [Microsoft.AspNetCore.Components.SupplyParameterFromQuery]
     public string? ReturnUrl { get; set; }
 
+    private string VerifyUrl => $"/verify-email?email={Uri.EscapeDataString(_model.Email.Trim())}";
+
     private async Task SubmitAsync()
     {
         _errorKey = null;
+        _needsVerification = false;
+        _resent = false;
         try
         {
             var tokens = await IdentityClient.LoginAsync(
@@ -50,6 +78,11 @@
             // 回跳仅限站内地址（相对路径或同站绝对 URL），防开放重定向
             Navigation.NavigateTo(SafeReturnUrl() ?? "/");
         }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Forbidden)
+        {
+            _errorKey = "ui.auth.error.email-not-verified";
+            _needsVerification = true;
+        }
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
         {
             _errorKey = "ui.auth.error.invalid-credentials";
@@ -57,6 +90,27 @@
         catch (HttpRequestException)
         {
             _errorKey = "ui.auth.error.generic";
+        }
+    }
+
+    private async Task ResendAsync()
+    {
+        if (_resending)
+            return;
+        _resending = true;
+        try
+        {
+            await IdentityClient.RequestEmailVerificationAsync(
+                new(_model.Email.Trim()), CancellationToken.None);
+            _resent = true;
+        }
+        catch (HttpRequestException)
+        {
+            _errorKey = "ui.auth.error.generic";
+        }
+        finally
+        {
+            _resending = false;
         }
     }
 

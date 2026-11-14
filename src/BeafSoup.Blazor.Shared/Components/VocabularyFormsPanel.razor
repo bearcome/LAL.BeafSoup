@@ -1,0 +1,53 @@
+@inject IUiTextProvider UiText
+
+@* 形态变化展示：动词按人称×时态表格，其他词性按范式分组平铺；范式名走本地化数据层。 *@
+@if (Forms.HasRows)
+{
+    <table class="forms-table">
+        <thead>
+            <tr>
+                <th scope="col" class="form-corner"></th>
+                @for (var person = 0; person < VocabularyFormsTable.PersonKeys.Count; person++)
+                {
+                    <th scope="col">@UiText.Text(VocabularyFormsTable.PersonKeys[person])</th>
+                }
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var row in Forms.Rows)
+            {
+                <tr>
+                    <th scope="row">@ParadigmLabel(row.ParadigmKey)</th>
+                    @foreach (var cell in row.Cells)
+                    {
+                        <td>@cell</td>
+                    }
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+@foreach (var group in Forms.Groups)
+{
+    <div class="form-group">
+        <div class="form-name">@ParadigmLabel(group.ParadigmKey)</div>
+        <div class="form-values">
+            @foreach (var slot in group.Cells)
+            {
+                <span>@slot</span>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public FormsTable Forms { get; set; } = default!;
+
+    private string ParadigmLabel(string paradigmKey)
+    {
+        // 数据中的范式键含下划线，而语义键规范只允许连字符：先转换再查找；缺失时退回原型
+        var key = $"ui.trainer.paradigm.{paradigmKey.Replace('_', '-')}";
+        var text = UiText.Text(key);
+        return text == key ? paradigmKey : text;
+    }
+}

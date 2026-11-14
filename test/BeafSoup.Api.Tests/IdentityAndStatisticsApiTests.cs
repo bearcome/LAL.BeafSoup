@@ -13,6 +13,12 @@ public sealed class IdentityAndStatisticsApiTests(ApiTestFixture fixture)
     [Fact]
     public async Task Register_ThenHeartbeat_ThenStatistics_OnlineCountedByLease()
     {
+        // 统计投影跨测试共享同一数据库：以注册前快照为基线，避免依赖测试执行顺序
+        var baselineClient = fixture.CreateClient();
+        var baselineTokens = await fixture.RegisterAsync(baselineClient, $"baseline-{Guid.NewGuid():N}@example.com");
+        ApiTestFixture.AuthenticateAsStatisticsOperator(baselineClient, baselineTokens);
+        var before = (await baselineClient.GetFromJsonAsync<OnlineStatisticsSnapshot>("/api/usage-analytics/statistics"))!;
+
         var client = fixture.CreateClient();
         var tokens = await fixture.RegisterAsync(client, "learner-a@example.com");
         ApiTestFixture.Authenticate(client, tokens);
@@ -24,10 +30,11 @@ public sealed class IdentityAndStatisticsApiTests(ApiTestFixture fixture)
         ApiTestFixture.AuthenticateAsStatisticsOperator(operatorClient, tokens);
         var statistics = await operatorClient.GetFromJsonAsync<OnlineStatisticsSnapshot>("/api/usage-analytics/statistics");
         statistics.Should().NotBeNull();
-        statistics!.RegisteredTotal.Should().Be(1);
-        statistics.ActiveAccounts.Should().Be(1);
-        statistics.OnlineUsers.Should().Be(1);
-        statistics.OnlineSessions.Should().Be(1);
+        // 本账户注册恰计数一次，心跳后至少有一个在线用户/会话
+        (statistics!.RegisteredTotal - before.RegisteredTotal).Should().Be(1);
+        (statistics.ActiveAccounts - before.ActiveAccounts).Should().Be(1);
+        statistics.OnlineUsers.Should().BeGreaterThanOrEqualTo(1);
+        statistics.OnlineSessions.Should().BeGreaterThanOrEqualTo(1);
     }
 
     [Fact]

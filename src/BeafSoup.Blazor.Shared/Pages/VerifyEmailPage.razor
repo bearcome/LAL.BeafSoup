@@ -1,0 +1,129 @@
+@page "/verify-email"
+@attribute [AllowAnonymous]
+@inject IdentityApiClient IdentityClient
+@inject IAuthTokenStore Tokens
+@inject AuthStateProvider AuthState
+@inject HeartbeatService Heartbeat
+@inject AppState AppState
+@inject IUiTextProvider UiText
+@inject NavigationManager Navigation
+
+<h1><T Key="ui.auth.verify.title" /></h1>
+<p><T Key="ui.auth.verify.subtitle" /></p>
+
+<EditForm Model="_model" OnValidSubmit="SubmitAsync">
+    <div>
+        <label><T Key="ui.auth.email" /></label>
+        <InputText @bind-Value="_model.Email" type="email" autocomplete="email" />
+    </div>
+    <div>
+        <label><T Key="ui.auth.verify.code" /></label>
+        <InputText @bind-Value="_model.Code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" />
+    </div>
+    <button type="submit" disabled="@_submitting"><T Key="ui.auth.verify.submit" /></button>
+</EditForm>
+
+<button class="button-secondary" style="margin-top: var(--spacing-3);" @onclick="ResendAsync" disabled="@_resending">
+    <T Key="ui.auth.verify.resend" />
+</button>
+
+@if (_errorKey is not null)
+{
+    <p role="alert" style="color: var(--color-error);">@UiText.Text(_errorKey)</p>
+}
+@if (_resent)
+{
+    <p role="status"><T Key="ui.auth.verify.sent" /></p>
+}
+@if (_success)
+{
+    <p role="status"><T Key="ui.auth.verify.success" /></p>
+}
+
+<p><a href="/login"><T Key="ui.auth.link.to-login" /></a></p>
+
+@code {
+    private readonly VerifyModel _model = new();
+    private string? _errorKey;
+    private bool _submitting;
+    private bool _resending;
+    private bool _resent;
+    private bool _success;
+
+    [Microsoft.AspNetCore.Components.SupplyParameterFromQuery]
+    public string? Email { get; set; }
+
+    [Microsoft.AspNetCore.Components.SupplyParameterFromQuery]
+    public string? Code { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        // 邮件链接可直接带入邮箱与验证码
+        if (!string.IsNullOrWhiteSpace(Email))
+            _model.Email = Email;
+        if (!string.IsNullOrWhiteSpace(Code))
+            _model.Code = Code;
+    }
+
+    private async Task SubmitAsync()
+    {
+        if (_submitting)
+            return;
+        _submitting = true;
+        _errorKey = null;
+        _success = false;
+        try
+        {
+            var tokens = await IdentityClient.VerifyEmailAsync(
+                new(_model.Email.Trim(), _model.Code.Trim()), CancellationToken.None);
+            await Tokens.StoreAsync(tokens, CancellationToken.None);
+            AuthState.NotifyLoggedIn();
+            await AppState.EnsureProfileAsync(tokens.UserId, CancellationToken.None);
+            Heartbeat.Start();
+            _success = true;
+            Navigation.NavigateTo("/");
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.BadRequest)
+        {
+            _errorKey = "ui.auth.verify.invalid";
+        }
+        catch (HttpRequestException)
+        {
+            _errorKey = "ui.auth.error.generic";
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+
+    private async Task ResendAsync()
+    {
+        if (_resending)
+            return;
+        _resending = true;
+        _errorKey = null;
+        _resent = false;
+        try
+        {
+            // 服务端对任何邮箱都返回已受理：不泄露账户是否存在
+            await IdentityClient.RequestEmailVerificationAsync(
+                new(_model.Email.Trim()), CancellationToken.None);
+            _resent = true;
+        }
+        catch (HttpRequestException)
+        {
+            _errorKey = "ui.auth.error.generic";
+        }
+        finally
+        {
+            _resending = false;
+        }
+    }
+
+    private sealed class VerifyModel
+    {
+        public string Email { get; set; } = "";
+        public string Code { get; set; } = "";
+    }
+}

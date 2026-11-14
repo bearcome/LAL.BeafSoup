@@ -1,0 +1,68 @@
+@page "/dialogues"
+@attribute [Authorize]
+@using BeafSoup.Content
+@inject AppState AppState
+@inject ContentApiClient Content
+
+<section class="page-heading">
+    <p class="page-eyebrow">@TargetLanguage</p>
+    <h1><T Key="ui.dialogues.title" /></h1>
+    <p><T Key="ui.dialogues.subtitle" /></p>
+</section>
+
+@if (_error)
+{
+    <div class="notice notice-error" role="alert">
+        <span><T Key="ui.common.error.unavailable" /></span>
+        <button class="button-secondary" @onclick="LoadAsync" disabled="@_loading"><T Key="ui.common.retry" /></button>
+    </div>
+}
+else if (_loading)
+{
+    <p><T Key="ui.common.loading" /></p>
+}
+else if (_dialogues is null || _dialogues.Count == 0)
+{
+    <div class="card"><T Key="ui.dialogues.empty" /></div>
+}
+else
+{
+    <div class="library-grid">
+        @foreach (var dialogue in _dialogues)
+        {
+            <a class="library-card" href="@($"/dialogues/{Uri.EscapeDataString(dialogue.DialogueId)}")">
+                <strong>@dialogue.PreviewText</strong>
+                <p class="library-preview">@dialogue.Lines.Count <T Key="ui.dialogues.line-count" /></p>
+            </a>
+        }
+    </div>
+}
+
+@code {
+    private IReadOnlyList<DialogueDto>? _dialogues;
+    private bool _loading = true;
+    private bool _error;
+
+    private string TargetLanguage => AppState.CurrentProfile?.TargetLanguage ?? "de-DE";
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _error = false;
+        try
+        {
+            _dialogues = await Content.GetDialoguesAsync(TargetLanguage, CancellationToken.None);
+        }
+        catch (HttpRequestException)
+        {
+            _error = true;
+            _dialogues = null;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+}

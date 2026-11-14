@@ -70,8 +70,9 @@ public sealed class LearningLoopApiTests(ApiTestFixture fixture)
             $"/api/exercises?ids={string.Join("&ids=", ids)}");
         presentations.Should().HaveCount(6);
         presentations.Should().NotBeNull();
-        presentations!.Select(p => p.TypeKey).Should().BeEquivalentTo(
-            ["WordDefinitionMcq", "SentenceClozeMcq", "SentenceClozeInput", "SentenceTranslationOrder", "DialogueListeningMcq", "DialogueCloze"]);
+        // 呈现顺序必须与课时编排一致（逐题显示依赖该顺序）
+        presentations!.Select(p => p.InstanceId).Should().Equal(ids);
+        presentations!.Select(p => p.TypeKey).Should().BeEquivalentTo(            ["WordDefinitionMcq", "SentenceClozeMcq", "SentenceClozeInput", "SentenceTranslationOrder", "DialogueListeningMcq", "DialogueCloze"]);
 
         // 逐题作答：全部答对（从负载读取正确答案构造作答）
         var activityCounter = 0;
@@ -183,9 +184,10 @@ public sealed class LearningLoopApiTests(ApiTestFixture fixture)
         await GradeAsync(client, cloze.ExerciseInstanceId, profileId, Guid.NewGuid(),
             BuildCorrectAnswer(ExerciseTypeKeys.SentenceClozeMcq, payload.RootElement));
 
-        // 判分关联已为 concept.coffee 建概念卡：再次入队被跳过（概念级唯一，不重复建卡）
+        // 判分关联已为该题声明的概念建卡：再次入队被跳过（概念级唯一，不重复建卡）
+        var conceptKey = payload.RootElement.GetProperty("conceptKey").GetString()!;
         var reEnqueue = await client.PostAsJsonAsync($"/api/learning/profiles/{profileId}/reviews/enqueue",
-            new { conceptIds = new[] { StableConceptId("concept.coffee") } });
+            new { conceptIds = new[] { StableConceptId(conceptKey) } });
         var reEnqueued = await reEnqueue.Content.ReadFromJsonAsync<JsonElement>();
         reEnqueued.GetProperty("inserted").GetInt32().Should().Be(0);
     }

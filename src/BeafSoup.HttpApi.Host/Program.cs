@@ -3,6 +3,7 @@ using BeafSoup.Content;
 using BeafSoup.Content.EntityFrameworkCore;
 using BeafSoup.Exercises;
 using BeafSoup.Exercises.EntityFrameworkCore;
+using BeafSoup.HttpApi.Host;
 using BeafSoup.Identity;
 using BeafSoup.Identity.EntityFrameworkCore;
 using BeafSoup.Learning;
@@ -40,25 +41,45 @@ builder.Services.AddSingleton(TimeProvider.System);
 // Localization 模块
 builder.Services.AddScoped<ILocalizationReader, LocalizationReader>();
 builder.Services.AddScoped<IUiTextCatalogQuery, UiTextCatalogQuery>();
+builder.Services.AddScoped<ILocalizedTextCatalogQuery, LocalizedTextCatalogQuery>();
 
-// Identity 模块（含可替换提供方边界，ADR-006）
+// Identity 模块（含可替换提供方边界，ADR-006；账户生命周期 ADR-008）
+builder.Services.Configure<IdentitySecurityOptions>(builder.Configuration.GetSection(IdentitySecurityOptions.SectionName));
 builder.Services.AddScoped<IUserAccountRepository, UserAccountRepository>();
 builder.Services.AddScoped<IUserSessionRepository, UserSessionRepository>();
 builder.Services.AddScoped<IUserCredentialRepository, UserCredentialRepository>();
+builder.Services.AddScoped<IAccountTokenRepository, AccountTokenRepository>();
 builder.Services.AddScoped<IIdentityProvider, PasswordIdentityProvider>();
 builder.Services.AddScoped<IPasswordHashingService, Pbkdf2PasswordHashingService>();
 builder.Services.AddScoped<IAccessTokenFactory, JwtAccessTokenFactory>();
 builder.Services.AddScoped<ISessionAppService, SessionAppService>();
 builder.Services.AddScoped<IIdentityAppService, IdentityAppService>();
 builder.Services.AddScoped<IAccountStatisticsQuery, AccountStatisticsQuery>();
+builder.Services.AddScoped<SessionIssuer>();
+builder.Services.AddScoped<AccountCodeService>();
+builder.Services.AddScoped<IAccountLifecycleAppService, AccountLifecycleAppService>();
+
+// 邮件发送：开发/测试使用内存发件箱；其他环境必须由部署方注册真实实现
+if (builder.Environment.IsDevelopment() || builder.Environment.IsEnvironment("Testing"))
+{
+    builder.Services.AddSingleton<DevelopmentEmailSender>();
+    builder.Services.AddSingleton<IEmailSender>(provider => provider.GetRequiredService<DevelopmentEmailSender>());
+}
+else
+{
+    builder.Services.AddSingleton<IEmailSender, MissingEmailSender>();
+}
 
 // UsageAnalytics 模块
 builder.Services.AddScoped<IUsageStatisticsQuery, UsageStatisticsQuery>();
 builder.Services.AddScoped<IPresenceHeartbeatHandler, PresenceHeartbeatHandler>();
 
-// Content 模块（课程目录只读）
+// Content 模块（课程目录与内容库只读）
 builder.Services.AddScoped<ICourseCatalogReader, CourseCatalogReader>();
 builder.Services.AddScoped<ICourseCatalogQuery, CourseCatalogQuery>();
+builder.Services.AddScoped<IContentLibraryReader, ContentLibraryReader>();
+builder.Services.AddScoped<IContentLibraryQuery, ContentLibraryQuery>();
+builder.Services.AddScoped<ISentenceAudioAssetQuery, SentenceAudioAssetQuery>();
 
 // Exercises 模块（题型注册表 + 判分）
 builder.Services.AddSingleton(new ExerciseRegistry(
@@ -83,6 +104,10 @@ builder.Services.AddScoped<ILearningActivityAppService, LearningActivityAppServi
 builder.Services.AddScoped<IReviewAppService, ReviewAppService>();
 builder.Services.AddScoped<ILearningProgressQuery, LearningProgressQuery>();
 builder.Services.AddScoped<IConceptReviewRecorder, ConceptReviewRecorder>();
+// 学习者数据权利：导出与注销擦除（ADR-008）
+builder.Services.AddScoped<LearnerDataRightsService>();
+builder.Services.AddScoped<ILearnerDataExportQuery>(provider => provider.GetRequiredService<LearnerDataRightsService>());
+builder.Services.AddScoped<IAccountDataEraser>(provider => provider.GetRequiredService<LearnerDataRightsService>());
 
 // MVC 控制器分布在各模块 HttpApi 程序集，由宿主显式组合。
 builder.Services.AddControllers()
@@ -165,6 +190,9 @@ app.Use(async (context, next) =>
             IdentityErrorCodes.InvalidCredentials or IdentityErrorCodes.AccountDisabled => StatusCodes.Status401Unauthorized,
             IdentityErrorCodes.DuplicateIdentityLink => StatusCodes.Status409Conflict,
             IdentityErrorCodes.SessionNotFound or IdentityErrorCodes.SessionEnded => StatusCodes.Status401Unauthorized,
+            // 未验证邮箱：拒绝登录但不视为凭据错误，客户端据此进入验证流程
+            IdentityErrorCodes.EmailNotVerified => StatusCodes.Status403Forbidden,
+            IdentityErrorCodes.TooManyAttempts => StatusCodes.Status429TooManyRequests,
             _ => StatusCodes.Status400BadRequest,
         };
         context.Response.ContentType = "application/json";

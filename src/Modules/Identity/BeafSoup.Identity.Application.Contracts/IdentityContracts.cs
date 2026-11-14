@@ -18,6 +18,16 @@ public sealed record AuthTokensDto(
     Guid SessionId,
     Guid UserId);
 
+/// <summary>
+/// 注册结果：启用邮箱验证要求时 Tokens 为 null，客户端转入验证流程；
+/// VerificationRequired 只反映本次注册的处理方式，不泄露其他账户信息。
+/// </summary>
+public sealed record RegistrationResultDto(
+    Guid UserId,
+    string Email,
+    bool VerificationRequired,
+    AuthTokensDto? Tokens);
+
 /// <summary>会话在线事实快照（供 UsageAnalytics 计算在线/时长投影；权威数据仍在 Identity 会话表）。</summary>
 public sealed record SessionPresenceSnapshot(
     Guid SessionId,
@@ -31,10 +41,10 @@ public sealed record AccountStatisticsSnapshot(long RegisteredTotal, long Active
 
 public interface IIdentityAppService
 {
-    /// <summary>注册：幂等（按 RegistrationEventId 去重）；成功即创建唯一 UserId。</summary>
-    Task<AuthTokensDto> RegisterAsync(RegisterAccountRequest request, CancellationToken cancellationToken);
+    /// <summary>注册：幂等（按 RegistrationEventId 去重）；成功即创建唯一 UserId。启用验证要求时不签发令牌。</summary>
+    Task<RegistrationResultDto> RegisterAsync(RegisterAccountRequest request, CancellationToken cancellationToken);
 
-    /// <summary>登录：校验凭据与会话策略（新登录顶替旧会话，ADR-006）。</summary>
+    /// <summary>登录：校验凭据与会话策略（新登录顶替旧会话，ADR-006）；启用验证要求时拒绝未验证账户。</summary>
     Task<AuthTokensDto> LoginAsync(LoginRequest request, CancellationToken cancellationToken);
 }
 

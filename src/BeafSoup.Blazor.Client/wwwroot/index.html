@@ -38,12 +38,42 @@
                 navigator.serviceWorker.register("service-worker.js");
             }
         }
+        // 文件下载桥：把文本内容作为附件交给浏览器下载（数据导出）
+        window.beafSoupFiles = {
+            downloadText: function (fileName, text) {
+                try {
+                    var blob = new Blob([text], { type: "application/json;charset=utf-8" });
+                    var url = URL.createObjectURL(blob);
+                    var anchor = document.createElement("a");
+                    anchor.href = url;
+                    anchor.download = fileName;
+                    document.body.appendChild(anchor);
+                    anchor.click();
+                    anchor.remove();
+                    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+                    return true;
+                } catch (e) {
+                    return false;
+                }
+            }
+        };
         // 音频播放桥：在脚本内吸收浏览器播放拒绝与加载失败，调用侧仅接收状态
         window.beafSoupAudio = {
             play: async function (element) {
                 if (!element || !element.play) return false;
                 try {
                     await element.play();
+                    return true;
+                } catch (e) {
+                    return false;
+                }
+            },
+            // 顺序播放的停止钩子：组件只接收状态，不向外抛异常
+            stop: function (element) {
+                try {
+                    if (!element) return false;
+                    element.pause();
+                    element.currentTime = 0;
                     return true;
                 } catch (e) {
                     return false;

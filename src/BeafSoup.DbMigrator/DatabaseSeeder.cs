@@ -73,6 +73,7 @@ public static class DatabaseSeeder
         {
             context.Sentences.AddRange(validated.Sentences.Select(ContentPersistenceMapper.ToRow));
             context.Dialogues.AddRange(validated.Dialogues.Select(ContentPersistenceMapper.ToRow));
+            context.Essays.AddRange(validated.Essays.Select(ContentPersistenceMapper.ToRow));
             context.Courses.AddRange(validated.Courses.Select(ContentPersistenceMapper.ToRow));
             await context.SaveChangesAsync();
         }
@@ -86,7 +87,7 @@ public static class DatabaseSeeder
         }
 
         Console.WriteLine($"种子填充完成：概念 {validated.Concepts.Count}，句子 {validated.Sentences.Count}，" +
-            $"对话 {validated.Dialogues.Count}，课程 {validated.Courses.Count}，习题 {validated.Exercises.Count}，" +
+            $"对话 {validated.Dialogues.Count}，短文 {validated.Essays.Count}，课程 {validated.Courses.Count}，习题 {validated.Exercises.Count}，" +
             $"本地化文本 {validated.LocalizedTexts.Count}。");
     }
 

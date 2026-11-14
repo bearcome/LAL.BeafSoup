@@ -1,0 +1,140 @@
+@page "/vocabulary"
+@attribute [Authorize]
+@using System.Text.Json
+@inject AppState AppState
+@inject IDictionaryCache Dictionary
+@inject IUiTextProvider UiText
+
+<section class="page-heading">
+    <p class="page-eyebrow">@TargetLanguage</p>
+    <h1><T Key="ui.vocabulary.title" /></h1>
+    <p><T Key="ui.vocabulary.subtitle" /></p>
+</section>
+
+@if (_loading)
+{
+    <p><T Key="ui.common.loading" /></p>
+}
+else if (_entries.Count == 0)
+{
+    <div class="card"><T Key="ui.vocabulary.empty" /></div>
+}
+else
+{
+    <div class="library-toolbar">
+        <label>
+            <T Key="ui.vocabulary.page-size" />
+            <select @bind="_pageSize" @bind:after="OnPageSizeChanged">
+                @foreach (var size in VocabularyPaging.PageSizes)
+                {
+                    <option value="@size">@size</option>
+                }
+            </select>
+        </label>
+        <label>
+            <input type="checkbox" @bind="_showAnnotations" />
+            <T Key="ui.vocabulary.show-annotations" />
+        </label>
+    </div>
+
+    <div class="vocabulary-grid">
+        @foreach (var entry in PagedEntries)
+        {
+            <a class="word-card" href="@($"/vocabulary/{entry.ConceptId}")">
+                <span class="word-card-title" lang="@TargetLanguage">@DisplayWord(entry)</span>
+                @if (_showAnnotations)
+                {
+                    <span class="word-card-annotation">@BaseLemma(entry) · @entry.PartOfSpeech</span>
+                    <span class="word-card-annotation">@Cefr(entry)</span>
+                }
+            </a>
+        }
+    </div>
+
+    <div class="pagination">
+        <button class="button-secondary" @onclick="PreviousPage" disabled="@(_page <= 1)">
+            <T Key="ui.vocabulary.prev" />
+        </button>
+        <span>@UiText.Text("ui.vocabulary.page") @_page / @TotalPages</span>
+        <button class="button-secondary" @onclick="NextPage" disabled="@(_page >= TotalPages)">
+            <T Key="ui.vocabulary.next" />
+        </button>
+    </div>
+}
+
+@code {
+    private IReadOnlyList<DictionaryEntry> _entries = [];
+    private bool _loading = true;
+    private bool _showAnnotations;
+    private int _pageSize = VocabularyPaging.PageSizes[0];
+    private int _page = 1;
+
+    private string TargetLanguage => AppState.CurrentProfile?.TargetLanguage ?? "de-DE";
+    private string BaseLanguage => AppState.CurrentProfile?.BaseLanguage ?? "zh-CN";
+    private int TotalPages => VocabularyPaging.TotalPages(_entries.Count, _pageSize);
+    private IReadOnlyList<DictionaryEntry> PagedEntries => VocabularyPaging.Slice(_entries, _page, _pageSize);
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await Dictionary.EnsureLoadedAsync(CancellationToken.None);
+            _entries = Dictionary.AllEntries
+                .OrderBy(entry => entry.ConceptKey, StringComparer.Ordinal)
+                .ToArray();
+        }
+        catch (Exception exception) when (exception is HttpRequestException or InvalidDataException or JsonException)
+        {
+            _entries = [];
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void OnPageSizeChanged()
+    {
+        _pageSize = VocabularyPaging.PageSizes.Contains(_pageSize) ? _pageSize : VocabularyPaging.PageSizes[0];
+        _page = 1;
+    }
+
+    private void PreviousPage() => _page = VocabularyPaging.ClampPage(_page - 1, TotalPages);
+
+    private void NextPage() => _page = VocabularyPaging.ClampPage(_page + 1, TotalPages);
+
+    private JsonElement PrimaryLexeme(DictionaryEntry entry)
+        => entry.ByLanguage.TryGetValue(TargetLanguage, out var language)
+            ? language.GetProperty("lexemes").EnumerateArray()
+                .FirstOrDefault(l => l.GetProperty("isPrimary").GetBoolean())
+            : default;
+
+    private string DisplayWord(DictionaryEntry entry)
+    {
+        var lexeme = PrimaryLexeme(entry);
+        if (lexeme.ValueKind is not JsonValueKind.Object)
+            return entry.ConceptKey;
+        return lexeme.TryGetProperty("displayWord", out var display)
+            ? display.GetString() ?? entry.ConceptKey
+            : lexeme.GetProperty("lemma").GetString() ?? entry.ConceptKey;
+    }
+
+    private string BaseLemma(DictionaryEntry entry)
+    {
+        if (!entry.ByLanguage.TryGetValue(BaseLanguage, out var language))
+            return "";
+        var primary = language.GetProperty("lexemes").EnumerateArray()
+            .FirstOrDefault(l => l.GetProperty("isPrimary").GetBoolean());
+        return primary.ValueKind is JsonValueKind.Object && primary.TryGetProperty("lemma", out var lemma)
+            ? lemma.GetString() ?? ""
+            : "";
+    }
+
+    private string Cefr(DictionaryEntry entry)
+    {
+        var lexeme = PrimaryLexeme(entry);
+        return lexeme.ValueKind is JsonValueKind.Object && lexeme.TryGetProperty("cefr", out var cefr)
+            ? cefr.GetString() ?? ""
+            : "";
+    }
+}

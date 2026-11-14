@@ -19,7 +19,7 @@ try
 
     if (cli.Command == "validate")
     {
-        Console.WriteLine($"种子校验通过：概念 {validated.Concepts.Count}，句子 {validated.Sentences.Count}，对话 {validated.Dialogues.Count}，课程 {validated.Courses.Count}，音色配置 {validated.VoiceRoles.Count}，本地化文本 {validated.LocalizedTexts.Count}。");
+        Console.WriteLine($"种子校验通过：概念 {validated.Concepts.Count}，句子 {validated.Sentences.Count}，对话 {validated.Dialogues.Count}，短文 {validated.Essays.Count}，课程 {validated.Courses.Count}，音色配置 {validated.VoiceRoles.Count}，本地化文本 {validated.LocalizedTexts.Count}。");
         return 0;
     }
 

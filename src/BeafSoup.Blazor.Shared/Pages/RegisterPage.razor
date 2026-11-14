@@ -28,6 +28,12 @@
 }
 
 <p><a href="/login"><T Key="ui.auth.link.to-login" /></a></p>
+<p class="legal-note">
+    <T Key="ui.legal.consent-prefix" />
+    <a href="/terms"><T Key="ui.legal.terms.link" /></a>
+    <span aria-hidden="true">·</span>
+    <a href="/privacy"><T Key="ui.legal.privacy.link" /></a>
+</p>
 
 @code {
     private readonly RegisterModel _model = new();
@@ -40,14 +46,17 @@
         {
             // RegistrationEventId 由客户端生成并持久于本次表单，重试提交同一事件 → 服务端幂等去重
             _registrationEventId ??= Guid.NewGuid();
-            var tokens = await IdentityClient.RegisterAsync(
+            var result = await IdentityClient.RegisterAsync(
                 new(_model.Email, _model.Password, "zh-CN", "de-DE", _registrationEventId.Value),
                 CancellationToken.None);
-            await Tokens.StoreAsync(tokens, CancellationToken.None);
-            AuthState.NotifyLoggedIn();
-            await AppState.EnsureProfileAsync(tokens.UserId, CancellationToken.None);
-            Heartbeat.Start();
-            Navigation.NavigateTo("/");
+
+            if (result.Tokens is null)
+            {
+                // 启用邮箱验证要求：注册不签发令牌，转入验证页（邮箱预填）
+                Navigation.NavigateTo($"/verify-email?email={Uri.EscapeDataString(result.Email)}");
+                return;
+            }
+            await SignInAsync(result.Tokens);
         }
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Conflict)
         {
@@ -57,6 +66,15 @@
         {
             _errorKey = "ui.auth.error.generic";
         }
+    }
+
+    private async Task SignInAsync(BeafSoup.Identity.AuthTokensDto tokens)
+    {
+        await Tokens.StoreAsync(tokens, CancellationToken.None);
+        AuthState.NotifyLoggedIn();
+        await AppState.EnsureProfileAsync(tokens.UserId, CancellationToken.None);
+        Heartbeat.Start();
+        Navigation.NavigateTo("/");
     }
 
     private Guid? _registrationEventId;

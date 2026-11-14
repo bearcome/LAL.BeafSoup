@@ -7,7 +7,7 @@
 - **长期目标**：一个语义/一个单词对应 **N 种语言**；新增一门语言只是"数据 + 模块配置"的工作，而不是重写代码。
 - **长期目标**：一个语义/一个单词对应 **N 种语言**；已有语言处理器覆盖时可通过数据与配置扩展，新的书写系统或形态规则须先实现并验证对应处理器。
 
-> 仓库已完成第 1–4 阶段，当前进入第 5 阶段（模拟考试、加固、第二门语言验证）。
+> 仓库已完成第 1–4 阶段，并完成第 4 阶段后续迭代（内容库与音频细化），当前进入第 5 阶段（模拟考试、加固、第二门语言验证）。
 
 ## 仓库结构
 
@@ -46,6 +46,21 @@ cd src/BeafSoup.DbMigrator
 dotnet run -- sync-localization --connection "Data Source=../BeafSoup.HttpApi.Host/beafsoup.db" --seed-dir ../../data/seed
 ```
 
+数据保留期清理（ADR-008，幂等；生产需用定时任务调度）：
+
+```bash
+cd src/BeafSoup.DbMigrator
+dotnet run -- purge --connection "Data Source=../BeafSoup.HttpApi.Host/beafsoup.db"
+```
+
+### 1b. 开发环境的邮箱验证
+
+默认要求注册后先验证邮箱（`Identity:RequireVerifiedEmailForLogin`，见 `src/BeafSoup.HttpApi.Host/appsettings.json`）。开发/测试环境使用内存发件箱替代真实邮件：注册后访问
+
+- `GET http://localhost:5080/api/dev/email-outbox`
+
+即可看到发件箱中最近一封邮件正文里的 6 位验证码，在 `/verify-email` 页面输入即可完成验证并登录。该端点只在 `Development`/`Testing` 环境存在；生产环境必须注册真实的 `IEmailSender` 实现（如 SMTP/邮件服务商），否则验证与密码找回不可用。
+
 ### 2. 启动 API 服务端
 
 ```bash
@@ -83,4 +98,7 @@ dotnet run
 | [docs/features/feature-catalog.md](docs/features/feature-catalog.md) | 功能总目录（需求 1–14 映射） |
 | [docs/features/account-and-usage-statistics.md](docs/features/account-and-usage-statistics.md) | 注册、访问策略、学习数据归属与使用统计 |
 | [docs/features/acceptance-scenarios.md](docs/features/acceptance-scenarios.md) | 核心用户流程的 BDD 验收场景 |
+| [docs/features/account-lifecycle.md](docs/features/account-lifecycle.md) | 邮箱验证、密码找回、注销、数据导出与保留期 |
+| [docs/features/content-library.md](docs/features/content-library.md) | 多角色对话、短文、单词表与单词详情；完整 A1 课程规模 |
+| [docs/features/platform-readiness-review.md](docs/features/platform-readiness-review.md) | 上线就绪度自审（能力清单、缺口与上线路径） |
 | [docs/conventions/coding-conventions.md](docs/conventions/coding-conventions.md) | 命名规范、语言规则（英文设计/中文注释）、验证要求 |

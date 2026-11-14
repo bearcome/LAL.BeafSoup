@@ -1,0 +1,10 @@
+@page "/terms"
+@attribute [AllowAnonymous]
+@inject IUiTextProvider UiText
+
+<div class="legal-page">
+    <h1><T Key="ui.legal.terms.title" /></h1>
+    @* 正文来自本地化数据层（ui.legal.terms.body），换行即段落分隔 *@
+    <div class="legal-body">@UiText.Text("ui.legal.terms.body")</div>
+    <p><a href="/privacy"><T Key="ui.legal.privacy.link" /></a></p>
+</div>

@@ -1,0 +1,72 @@
+@page "/essays"
+@attribute [Authorize]
+@using BeafSoup.Content
+@inject AppState AppState
+@inject ContentApiClient Content
+@inject IUiTextProvider UiText
+
+<section class="page-heading">
+    <p class="page-eyebrow">@TargetLanguage</p>
+    <h1><T Key="ui.essays.title" /></h1>
+    <p><T Key="ui.essays.subtitle" /></p>
+</section>
+
+@if (_error)
+{
+    <div class="notice notice-error" role="alert">
+        <span><T Key="ui.common.error.unavailable" /></span>
+        <button class="button-secondary" @onclick="LoadAsync" disabled="@_loading"><T Key="ui.common.retry" /></button>
+    </div>
+}
+else if (_loading)
+{
+    <p><T Key="ui.common.loading" /></p>
+}
+else if (_essays is null || _essays.Count == 0)
+{
+    <div class="card"><T Key="ui.essays.empty" /></div>
+}
+else
+{
+    <div class="library-grid">
+        @for (var index = 0; index < _essays.Count; index++)
+        {
+            var essay = _essays[index];
+            var preview = essay.Sentences.FirstOrDefault()?.Text ?? essay.EssayId;
+            <a class="library-card" href="@($"/essays/{Uri.EscapeDataString(essay.EssayId)}")">
+                <span class="word-card-annotation">@UiText.Text("ui.essays.item") @(index + 1)</span>
+                <strong>@preview</strong>
+                <p class="library-preview">@essay.Sentences.Count <T Key="ui.essays.sentence-count" /></p>
+            </a>
+        }
+    </div>
+}
+
+@code {
+    private IReadOnlyList<EssayDto>? _essays;
+    private bool _loading = true;
+    private bool _error;
+
+    private string TargetLanguage => AppState.CurrentProfile?.TargetLanguage ?? "de-DE";
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _error = false;
+        try
+        {
+            _essays = await Content.GetEssaysAsync(TargetLanguage, CancellationToken.None);
+        }
+        catch (HttpRequestException)
+        {
+            _error = true;
+            _essays = null;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+}

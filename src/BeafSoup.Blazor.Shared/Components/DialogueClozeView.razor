@@ -1,26 +1,32 @@
 @using System.Text.Json
 @inherits GradedExerciseBase
 @inject IUiTextProvider UiText
+@inject IDictionaryCache Dictionary
 
-@* 补全对话：音频播放补全后的完整台词（绝不朗读说话人标签——标签仅展示）；题目加载后自动播放首行音频。 *@
+@* 补全对话：整段按行顺序连续播放（每行各自音色，绝不朗读说话人标签）；每行也可单独播放。 *@
 <div class="card">
-    <div style="display:flex; gap: var(--spacing-2);">
-        <AudioButton Url="@FirstRevealedAudio" AutoPlay="true" />
+    <div style="display:flex; gap: var(--spacing-2); align-items:flex-start;">
+        <AudioSequenceButton Urls="LineAudioUrls" AutoPlay="true" LabelKey="ui.audio.play-dialogue" />
+        <AudioButton Url="@_optionAudioUrl" AutoPlay="true" ShowControl="false" PlayRequest="_optionAudioRequest" />
     </div>
     @foreach (var line in Lines)
     {
-        <div style="margin-top: var(--spacing-3);">
-            <strong>@(line.GetProperty("speakerLabel").GetString()):</strong>
-            @if (line.TryGetProperty("blank", out var blank))
-            {
-                <ClickableSentence Text="@line.GetProperty("text").GetString()"
-                                   BlankStart="@blank.GetProperty("start").GetInt32()"
-                                   BlankLength="@blank.GetProperty("length").GetInt32()" />
-            }
-            else
-            {
-                <ClickableSentence Text="@line.GetProperty("text").GetString()" BlankStart="0" BlankLength="0" />
-            }
+        <div class="dialogue-line" style="margin-top: var(--spacing-3);">
+            <div>
+                <span class="dialogue-speaker">@(line.GetProperty("speakerLabel").GetString()):</span>
+                @if (line.TryGetProperty("blank", out var blank))
+                {
+                    <ClickableSentence Text="@line.GetProperty("text").GetString()" Language="@TargetLanguage"
+                                       BlankStart="@blank.GetProperty("start").GetInt32()"
+                                       BlankLength="@blank.GetProperty("length").GetInt32()" />
+                }
+                else
+                {
+                    <ClickableSentence Text="@line.GetProperty("text").GetString()" Language="@TargetLanguage"
+                                       BlankStart="0" BlankLength="0" />
+                }
+            </div>
+            <AudioButton Url="@LineAudio(line)" />
         </div>
     }
 
@@ -51,32 +57,47 @@
 @code {
     private readonly InputModel _model = new();
     private string? _selected;
+    private string? _optionAudioUrl;
+    private int _optionAudioRequest;
 
     private IEnumerable<JsonElement> Lines => Payload.GetProperty("lines").EnumerateArray();
     private bool IsChoice => string.Equals(Payload.GetProperty("responseMode").GetString(), "Choice", StringComparison.OrdinalIgnoreCase);
     private JsonElement Blank => Lines.Select(l => l.TryGetProperty("blank", out var b) ? b : default)
         .First(b => b.ValueKind is JsonValueKind.Object);
     private IEnumerable<JsonElement> BlankOptions => Blank.GetProperty("options").EnumerateArray();
-    private string? FirstRevealedAudio => Lines.FirstOrDefault().ValueKind is JsonValueKind.Object
-        ? Lines.First().GetProperty("revealedAudioUrl").GetString()
-        : null;
+    private string TargetLanguage => AppState.CurrentProfile?.TargetLanguage ?? "de-DE";
+
+    /// <summary>整段播放：按行顺序取每行补全版音频；缺音频的行不参与排序。</summary>
+    private IReadOnlyList<string?> LineAudioUrls => Lines
+        .Select(LineAudio)
+        .Where(url => !string.IsNullOrWhiteSpace(url))
+        .ToArray();
+
+    private static string? LineAudio(JsonElement line)
+        => line.TryGetProperty("revealedAudioUrl", out var audio) ? audio.GetString() : null;
 
     private async Task SelectAsync(JsonElement option)
     {
         _selected = option.GetProperty("optionId").GetString();
-        var lineIndex = Lines.Select((l, i) => (l, i)).First(t => t.l.TryGetProperty("blank", out _)).i;
-        using var answer = JsonDocument.Parse($$"""{"lineIndex":{{lineIndex}},"optionId":"{{_selected}}"}""");
+        // 目标语言选项：选中即播放对应词元音频（解析失败保持静默，不阻断判分）
+        var text = option.GetProperty("text").GetString() ?? "";
+        _optionAudioUrl = Dictionary.FindPrimaryAudioUrl(text, TargetLanguage);
+        _optionAudioRequest++;
+        using var answer = JsonDocument.Parse($$"""{"lineIndex":{{BlankLineIndex}},"optionId":"{{_selected}}"}""");
         await SubmitAsync(answer.RootElement.Clone());
     }
 
     private async Task SubmitInputAsync()
     {
-        var lineIndex = Lines.Select((l, i) => (l, i)).First(t => t.l.TryGetProperty("blank", out _)).i;
-        using var answer = JsonDocument.Parse(JsonSerializer.Serialize(new { lineIndex, optionId = (string?)null, text = _model.Text }));
+        using var answer = JsonDocument.Parse(JsonSerializer.Serialize(
+            new { lineIndex = BlankLineIndex, optionId = (string?)null, text = _model.Text }));
         await SubmitAsync(answer.RootElement.Clone());
         if (LastGrade is { Correct: false })
             _model.Text = "";
     }
+
+    private int BlankLineIndex => Lines.Select((l, i) => (l, i))
+        .First(t => t.l.TryGetProperty("blank", out _)).i;
 
     private string OptionState(JsonElement option)
     {

@@ -47,7 +47,8 @@
 - 数据中存储的音频地址（如词典与习题载荷中的 `audioUrl`）一律为本规范定义的**相对路径**（`{language}/{name}.mp3`）；客户端经 `wwwroot/appsettings.json` 的 `MediaBaseUrl`（默认 `media/audio/`）拼接为可访问 URL，部署到 CDN 或独立域名时只改该配置。
 - `MediaBaseUrl` 支持三种形式：应用相对路径（跟随 `<base href>` 的子路径部署）、以 `/` 开头的站点根路径、带协议的 CDN 绝对地址。统一由 `MediaUrlResolver` 解析，`AudioButton` 不得另行拼接。
 - 播放桥在 JavaScript 内吸收浏览器拒绝播放及加载失败，`AudioButton` 恢复按钮并显示本地化错误；不得把音频 Promise 拒绝留成未处理异常。
-- 对话填空的 `-revealed-` 补全版资产缺失时，客户端回退到同句子的完整句音频（基础句音频本身就是补全后的台词，且不含说话人标签）；生成管线仍应补齐 revealed 资产，回退只用于避免播放中断。
+- 对话填空的补全版音频可直接使用该行完整句音频（`{sentenceId}-{assetFileToken}.mp3`，本身即补全后台词）；若负载仍声明 `-revealed-` 资产而文件缺失，客户端回退到同句子的完整句音频；生成管线在需要区分补全版本时仍可补齐 revealed 资产，回退只用于避免播放中断。
+- 多行对话的“整段播放”由客户端按行顺序串联各行的完整句音频完成（每行使用自己的 `VoiceRole`），不生成独立的对话总音频；说话人标签永不进入 TTS。
 - 应用端统一经 `AudioButton` 组件解析基路径，任何组件不得自行拼接音频 URL。
 
 ## 内容硬规则

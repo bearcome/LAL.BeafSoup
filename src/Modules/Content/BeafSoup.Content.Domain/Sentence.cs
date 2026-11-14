@@ -2,7 +2,7 @@ using BeafSoup.SharedKernel;
 
 namespace BeafSoup.Content;
 
-/// <summary>分词片段：零基 Unicode scalar 起点/长度，不复制原文。</summary>
+/// <summary>分词片段：零基 Unicode scalar 起点/长度，不复制原文；可携带已消歧的词形与概念引用。</summary>
 public sealed record SentenceToken
 {
     public int Start { get; }
@@ -10,7 +10,10 @@ public sealed record SentenceToken
     public SentenceTokenKind Kind { get; }
     public Guid? FormCellId { get; }
 
-    public SentenceToken(int start, int length, SentenceTokenKind kind, Guid? formCellId = null)
+    /// <summary>发布期消歧后的概念键，供词↔句互链按稳定引用查询；无词汇链接时为 null。</summary>
+    public SemanticKey? ConceptKey { get; }
+
+    public SentenceToken(int start, int length, SentenceTokenKind kind, Guid? formCellId = null, SemanticKey? conceptKey = null)
     {
         if (start < 0 || length < 1)
             throw new DomainException(ContentErrorCodes.InvalidTokenRange, "分词起点必须非负且长度必须为正。");
@@ -18,6 +21,7 @@ public sealed record SentenceToken
         Length = length;
         Kind = kind;
         FormCellId = formCellId;
+        ConceptKey = conceptKey;
     }
 
     public int End => Start + Length;

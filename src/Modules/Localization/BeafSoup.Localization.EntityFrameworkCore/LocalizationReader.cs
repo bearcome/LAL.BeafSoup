@@ -30,4 +30,19 @@ public sealed class LocalizationReader : ILocalizationReader
             .FirstOrDefaultAsync(v => v.LanguageCode == language.Value && v.Role == role.ToString(), cancellationToken);
         return row is null ? null : LocalizationPersistenceMapper.ToDomain(row);
     }
+
+    public async Task<IReadOnlyList<(SemanticKey Key, LanguageCode Language, string Text, int Revision)>> GetTextsByKeysAsync(
+        IReadOnlyCollection<SemanticKey> keys, CancellationToken cancellationToken)
+    {
+        if (keys.Count == 0)
+            return [];
+        var values = keys.Select(k => k.Value).ToArray();
+        var rows = await _context.LocalizedTexts
+            .AsNoTracking()
+            .Where(text => values.Contains(text.Key))
+            .ToListAsync(cancellationToken);
+        return rows
+            .Select(r => (SemanticKey.Of(r.Key), LanguageCode.Of(r.LanguageCode), r.Text, r.Revision))
+            .ToArray();
+    }
 }

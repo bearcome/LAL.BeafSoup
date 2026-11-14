@@ -37,6 +37,7 @@ builder.Services.AddScoped<HeartbeatService>();
 builder.Services.AddScoped<IdentityApiClient>();
 builder.Services.AddScoped<IIdentityAppService>(provider => provider.GetRequiredService<IdentityApiClient>());
 builder.Services.AddScoped<ISessionAppService>(provider => provider.GetRequiredService<IdentityApiClient>());
+builder.Services.AddScoped<IAccountLifecycleAppService>(provider => provider.GetRequiredService<IdentityApiClient>());
 builder.Services.AddScoped<UiTextApiClient>();
 builder.Services.AddScoped<IUiTextCatalogQuery>(provider => provider.GetRequiredService<UiTextApiClient>());
 
@@ -48,6 +49,7 @@ builder.Services.AddScoped<IReviewAppService>(provider => provider.GetRequiredSe
 builder.Services.AddScoped<ILearningActivityAppService>(provider => provider.GetRequiredService<LearningApiClient>());
 builder.Services.AddScoped<ContentApiClient>();
 builder.Services.AddScoped<BeafSoup.Content.ICourseCatalogQuery>(provider => provider.GetRequiredService<ContentApiClient>());
+builder.Services.AddScoped<BeafSoup.Content.IContentLibraryQuery>(provider => provider.GetRequiredService<ContentApiClient>());
 builder.Services.AddScoped<ExerciseApiClient>();
 builder.Services.AddScoped<IExercisePresentationQuery>(provider => provider.GetRequiredService<ExerciseApiClient>());
 builder.Services.AddScoped<IExerciseGradingAppService>(provider => provider.GetRequiredService<ExerciseApiClient>());

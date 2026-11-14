@@ -37,6 +37,12 @@ public sealed class LearningProfileRepository : ILearningProfileRepository
         row.InspectorTrigger = updated.InspectorTrigger;
     }
 
+    public Task<int> DeleteAsync(Guid learnerProfileId, CancellationToken cancellationToken)
+    {
+        var id = learnerProfileId.ToString();
+        return _context.LearnerProfiles.Where(p => p.Id == id).ExecuteDeleteAsync(cancellationToken);
+    }
+
     public Task<int> SaveChangesAsync(CancellationToken cancellationToken)
         => _context.SaveChangesAsync(cancellationToken);
 }

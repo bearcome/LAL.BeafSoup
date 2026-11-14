@@ -1,53 +1,59 @@
 using BeafSoup.Learning;
 using BeafSoup.SharedKernel;
+using Microsoft.Extensions.Options;
 
 namespace BeafSoup.Identity;
 
-/// <summary>身份应用服务：注册（幂等）与登录（单会话顶替）；注册成功即创建默认 LearnerProfile（验收：默认学习配置）。</summary>
+/// <summary>
+/// 身份应用服务：注册（幂等）与登录（单会话顶替）；注册成功即创建默认 LearnerProfile（验收：默认学习配置）。
+/// 启用邮箱验证要求时注册不签发令牌，须先完成验证（ADR-008）。
+/// </summary>
 public sealed class IdentityAppService : IIdentityAppService
 {
-    private const int MinimumPasswordLength = 8;
-
     private readonly IUserAccountRepository _accountRepository;
-    private readonly IUserSessionRepository _sessionRepository;
     private readonly IIdentityProvider _identityProvider;
-    private readonly IAccessTokenFactory _tokenFactory;
-    private readonly ISessionAppService _sessionAppService;
+    private readonly SessionIssuer _sessionIssuer;
+    private readonly AccountCodeService _codes;
     private readonly ILearningProfileAppService _learningProfiles;
+    private readonly IdentitySecurityOptions _security;
     private readonly TimeProvider _timeProvider;
 
     public IdentityAppService(
         IUserAccountRepository accountRepository,
-        IUserSessionRepository sessionRepository,
         IIdentityProvider identityProvider,
-        IAccessTokenFactory tokenFactory,
-        ISessionAppService sessionAppService,
+        SessionIssuer sessionIssuer,
+        AccountCodeService codes,
         ILearningProfileAppService learningProfiles,
+        IOptions<IdentitySecurityOptions> security,
         TimeProvider timeProvider)
     {
         _accountRepository = accountRepository;
-        _sessionRepository = sessionRepository;
         _identityProvider = identityProvider;
-        _tokenFactory = tokenFactory;
-        _sessionAppService = sessionAppService;
+        _sessionIssuer = sessionIssuer;
+        _codes = codes;
         _learningProfiles = learningProfiles;
+        _security = security.Value;
         _timeProvider = timeProvider;
     }
 
-    public async Task<AuthTokensDto> RegisterAsync(RegisterAccountRequest request, CancellationToken cancellationToken)
+    public async Task<RegistrationResultDto> RegisterAsync(RegisterAccountRequest request, CancellationToken cancellationToken)
     {
         var providerUserId = IdentityEmail.Normalize(request.Email);
-        if (request.Password.Length < MinimumPasswordLength)
-            throw new DomainException(IdentityErrorCodes.WeakPassword, $"口令长度不得小于 {MinimumPasswordLength}。");
+        if (request.Password.Length < IdentityPasswordPolicy.MinimumLength)
+            throw new DomainException(IdentityErrorCodes.WeakPassword,
+                $"口令长度不得小于 {IdentityPasswordPolicy.MinimumLength}。");
 
-        // 幂等：同一 RegistrationEventId 重放 → 返回既有账户的新会话，不重复建户、不重复计数
+        // 幂等：同一 RegistrationEventId 重放 → 返回既有账户的处理结果，不重复建户、不重复计数
         var existingEvent = await _accountRepository.FindRegistrationEventAsync(request.RegistrationEventId, cancellationToken);
         if (existingEvent is not null)
         {
             var existingAccount = await _accountRepository.FindAsync(existingEvent.UserId, cancellationToken)
                 ?? throw new DomainException(IdentityErrorCodes.InvalidCredentials, "注册事件对应的账户不存在。");
             existingAccount.EnsureActive();
-            return await IssueSessionAsync(existingAccount, request, isNewAccount: false, cancellationToken);
+            var pending = _security.RequireVerifiedEmailForLogin && !existingAccount.IsEmailVerified;
+            return new RegistrationResultDto(
+                existingAccount.Id, providerUserId, pending,
+                pending ? null : await _sessionIssuer.IssueAsync(existingAccount, cancellationToken));
         }
 
         var existing = await _accountRepository.FindByIdentityLinkAsync(_identityProvider.ProviderKey, providerUserId, cancellationToken);
@@ -63,7 +69,18 @@ public sealed class IdentityAppService : IIdentityAppService
         await _accountRepository.InsertRegistrationEventAsync(
             new UserRegisteredEvent(request.RegistrationEventId, userId, now, request.IsTestAccount), cancellationToken);
         await _accountRepository.SaveChangesAsync(cancellationToken);
-        return await IssueSessionAsync(account, request, isNewAccount: true, cancellationToken);
+
+        // 默认 LearnerProfile：基础/目标语言取注册请求，缺省 zh-CN → de-DE（首个里程碑）
+        await _learningProfiles.CreateAsync(account.Id, new CreateLearnerProfileRequest(
+            request.BaseLanguage ?? "zh-CN", request.TargetLanguage ?? "de-DE"), cancellationToken);
+
+        if (!_security.RequireVerifiedEmailForLogin)
+            return new RegistrationResultDto(account.Id, providerUserId, false,
+                await _sessionIssuer.IssueAsync(account, cancellationToken));
+
+        // 验证要求：发送验证码，不签发令牌；发送失败不影响账户创建（可重新申请）
+        await _codes.TrySendAsync(account, providerUserId, AccountTokenPurpose.EmailVerification, cancellationToken);
+        return new RegistrationResultDto(account.Id, providerUserId, true, null);
     }
 
     public async Task<AuthTokensDto> LoginAsync(LoginRequest request, CancellationToken cancellationToken)
@@ -75,28 +92,8 @@ public sealed class IdentityAppService : IIdentityAppService
         if (account is null || !verified)
             throw new DomainException(IdentityErrorCodes.InvalidCredentials, "邮箱或口令错误。");
         account.EnsureActive();
-        return await IssueSessionAsync(account, new RegisterAccountRequest(
-            request.Email, request.Password, null, null, Guid.NewGuid()), isNewAccount: false, cancellationToken);
-    }
-
-    /// <summary>签发新会话并顶替同账户旧会话（ADR-006：每账户最多一个有效交互会话）；新账户同时创建默认学习配置。</summary>
-    private async Task<AuthTokensDto> IssueSessionAsync(
-        UserAccount account, RegisterAccountRequest request, bool isNewAccount, CancellationToken cancellationToken)
-    {
-        if (isNewAccount)
-        {
-            // 默认 LearnerProfile：基础/目标语言取注册请求，缺省 zh-CN → de-DE（首个里程碑）
-            var baseLanguage = request.BaseLanguage ?? "zh-CN";
-            var targetLanguage = request.TargetLanguage ?? "de-DE";
-            await _learningProfiles.CreateAsync(account.Id,
-                new CreateLearnerProfileRequest(baseLanguage, targetLanguage), cancellationToken);
-        }
-
-        var session = UserSession.Start(Guid.NewGuid(), account.Id, _timeProvider.GetUtcNow().UtcDateTime);
-        await _sessionRepository.InsertAsync(session, cancellationToken);
-        await _sessionRepository.SaveChangesAsync(cancellationToken);
-        await _sessionAppService.RevokeActiveSessionsExceptAsync(account.Id, session.SessionId, cancellationToken);
-        var (token, expiresAtUtc) = _tokenFactory.Create(account.Id, session.SessionId);
-        return new AuthTokensDto(token, expiresAtUtc, session.SessionId, account.Id);
+        if (_security.RequireVerifiedEmailForLogin && !account.IsEmailVerified)
+            throw new DomainException(IdentityErrorCodes.EmailNotVerified, "邮箱尚未验证，请先完成验证。");
+        return await _sessionIssuer.IssueAsync(account, cancellationToken);
     }
 }

@@ -4,7 +4,8 @@
 
 @* 句子填空输入题：宽容判分（大小写/变音符号不敏感、冠词容忍）在服务端按负载声明执行；题目加载后自动播放句子音频。 *@
 <div class="card">
-    <ClickableSentence Text="@SentenceText" BlankStart="@BlankStart" BlankLength="@BlankLength" />
+    <ClickableSentence Text="@SentenceText" Language="@TargetLanguage"
+                       BlankStart="@BlankStart" BlankLength="@BlankLength" />
     @if (Payload.TryGetProperty("audioUrl", out var audio))
     {
         <AudioButton Url="@audio.GetString()" AutoPlay="true" />
@@ -23,6 +24,9 @@
     private string SentenceText => Payload.GetProperty("sentenceText").GetString() ?? "";
     private int BlankStart => Payload.GetProperty("blankStart").GetInt32();
     private int BlankLength => Payload.GetProperty("blankLength").GetInt32();
+    private string TargetLanguage => Payload.TryGetProperty("targetLanguage", out var language)
+        ? language.GetString() ?? "de-DE"
+        : "de-DE";
 
     private async Task SubmitInputAsync()
     {

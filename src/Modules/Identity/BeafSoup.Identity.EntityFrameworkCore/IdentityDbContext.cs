@@ -15,6 +15,7 @@ public sealed class IdentityDbContext : DbContext
     public DbSet<UserCredentialRow> UserCredentials => Set<UserCredentialRow>();
     public DbSet<UserRegisteredEventRow> UserRegisteredEvents => Set<UserRegisteredEventRow>();
     public DbSet<UserSessionRow> UserSessions => Set<UserSessionRow>();
+    public DbSet<AccountTokenRow> AccountTokens => Set<AccountTokenRow>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -25,6 +26,20 @@ public sealed class IdentityDbContext : DbContext
             b.Property(x => x.Id).HasMaxLength(36);
             b.Property(x => x.Status).HasMaxLength(16);
             b.HasIndex(x => x.Status);
+        });
+
+        modelBuilder.Entity<AccountTokenRow>(static b =>
+        {
+            b.ToTable("account_tokens");
+            b.HasKey(x => x.Id);
+            b.Property(x => x.Id).HasMaxLength(36);
+            b.Property(x => x.UserId).HasMaxLength(36);
+            b.Property(x => x.Purpose).HasMaxLength(32);
+            b.Property(x => x.TokenHash).HasMaxLength(64);
+            b.Property(x => x.Salt).HasMaxLength(64);
+            b.HasIndex(x => x.TokenHash);
+            b.HasIndex(x => new { x.UserId, x.Purpose });
+            b.HasIndex(x => x.ExpiresAtUtc);
         });
 
         modelBuilder.Entity<UserIdentityLinkRow>(static b =>

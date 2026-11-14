@@ -25,6 +25,13 @@ public sealed class UserCredentialRepository : IUserCredentialRepository
             existing.Hash = hash;
     }
 
+    public async Task RemoveAsync(string provider, string providerUserId, CancellationToken cancellationToken)
+    {
+        await _context.UserCredentials
+            .Where(c => c.Provider == provider && c.ProviderUserId == providerUserId)
+            .ExecuteDeleteAsync(cancellationToken);
+    }
+
     public Task<int> SaveChangesAsync(CancellationToken cancellationToken)
         => _context.SaveChangesAsync(cancellationToken);
 }

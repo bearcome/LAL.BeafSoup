@@ -17,15 +17,20 @@ public sealed class ExercisePresentationQuery : IExercisePresentationQuery
         IReadOnlyList<Guid> instanceIds, CancellationToken cancellationToken)
     {
         var instances = await _instances.GetByIdsAsync(instanceIds, cancellationToken);
-        return instances.Select(instance =>
-        {
-            var handler = _registry.Resolve(instance.TypeKey, instance.PayloadVersion);
-            using var document = JsonDocument.Parse(instance.PayloadJson);
-            handler.ValidatePayload(document.RootElement.Clone());
-            return new ExercisePresentationDto(
-                instance.Id, instance.TypeKey, instance.PayloadVersion, instance.PayloadJson,
-                instance.Difficulty, instance.HintKey);
-        }).ToArray();
+        // 查询结果必须按请求顺序返回：课时/考试编排依赖该顺序逐题显示
+        var byId = instances.ToDictionary(instance => instance.Id);
+        return instanceIds
+            .Select(id => byId.GetValueOrDefault(id))
+            .Where(instance => instance is not null)
+            .Select(instance =>
+            {
+                var handler = _registry.Resolve(instance!.TypeKey, instance.PayloadVersion);
+                using var document = JsonDocument.Parse(instance.PayloadJson);
+                handler.ValidatePayload(document.RootElement.Clone());
+                return new ExercisePresentationDto(
+                    instance.Id, instance.TypeKey, instance.PayloadVersion, instance.PayloadJson,
+                    instance.Difficulty, instance.HintKey);
+            }).ToArray();
     }
 }
 

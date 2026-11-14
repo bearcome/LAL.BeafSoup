@@ -29,6 +29,20 @@ public sealed class ReviewCardRepository : IReviewCardRepository
             c => c.ProfileId == learnerProfileId.ToString() && c.DueUtc >= sinceUtc && c.Status != nameof(FsrsCardStatus.New),
             cancellationToken);
 
+    public async Task<IReadOnlyList<ReviewCard>> GetByProfileAsync(Guid learnerProfileId, CancellationToken cancellationToken)
+        => (await _context.ReviewCards
+                .AsNoTracking()
+                .Where(c => c.ProfileId == learnerProfileId.ToString())
+                .ToListAsync(cancellationToken))
+            .Select(LearningPersistenceMapper.ToDomain)
+            .ToArray();
+
+    public Task<int> DeleteByProfilesAsync(IReadOnlyCollection<Guid> learnerProfileIds, CancellationToken cancellationToken)
+    {
+        var keys = learnerProfileIds.Select(id => id.ToString()).ToArray();
+        return _context.ReviewCards.Where(c => keys.Contains(c.ProfileId)).ExecuteDeleteAsync(cancellationToken);
+    }
+
     public Task InsertAsync(ReviewCard card, CancellationToken cancellationToken)
     {
         _context.ReviewCards.Add(LearningPersistenceMapper.ToRow(card));

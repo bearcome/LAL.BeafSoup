@@ -97,7 +97,7 @@
 
 ### `sentence_tokens` — 分词片段
 
-主键 `(SentenceId, LanguageCode, Ordinal)`；`Start`/`Length` 为 Unicode scalar 索引（零基），`Kind`（Word/Whitespace/Punctuation/NonLexicalSpeech），`FormCellId` NULL 或引用 `paradigm_cells.Id`（逻辑外键）。片段按序、无重叠、完整覆盖全文（领域构造校验）。
+主键 `(SentenceId, LanguageCode, Ordinal)`；`Start`/`Length` 为 Unicode scalar 索引（零基），`Kind`（Word/Whitespace/Punctuation/NonLexicalSpeech），`FormCellId` NULL 或引用 `paradigm_cells.Id`（逻辑外键），`ConceptKey` NULL 或为发布期消歧后的概念语义键（词↔句例句互链；不建跨模块外键）。片段按序、无重叠、完整覆盖全文（领域构造校验）。
 
 ### `sentence_span_links` — 短语标注
 
@@ -128,6 +128,12 @@
 | `Status` | TEXT | `Active`/`Disabled`/`Deleted`（删除为标记删除，注册事实保留） |
 | `RegisteredAtUtc` | TEXT | UTC 注册时间 |
 | `IsTest` | INTEGER | 测试账户（排除出累计注册数与有效账户数） |
+| `EmailVerifiedAtUtc` | TEXT NULL | 邮箱验证时间；迁移时存量账户回填为注册时间（ADR-008） |
+
+### `account_tokens` — 账户一次性令牌（ADR-008）
+
+主键 `Id`；`UserId`、`Purpose`（`EmailVerification`/`PasswordReset`）、`TokenHash`（SHA-256+盐）、`Salt`、`CreatedAtUtc`、`ExpiresAtUtc`、`ConsumedAtUtc`、`FailedAttempts`。索引：`TokenHash`、`(UserId, Purpose)`、`ExpiresAtUtc`。明文验证码不落库；注销时按 UserId 全部删除，保留期清理见 ADR-008。
+
 
 ### `user_identity_links` — 身份关联
 

@@ -7,6 +7,7 @@ public sealed class SeedData
     public List<SeedConcept> Concepts { get; set; } = [];
     public List<SeedSentence> Sentences { get; set; } = [];
     public List<SeedDialogue> Dialogues { get; set; } = [];
+    public List<SeedEssay> Essays { get; set; } = [];
     public List<SeedCourse> Courses { get; set; } = [];
     public List<SeedUiText> UiTexts { get; set; } = [];
     public List<SeedExercise> Exercises { get; set; } = [];
@@ -96,6 +97,13 @@ public sealed class SeedDialogue
 {
     public string Id { get; set; } = "";
     public List<SeedDialogueLine> Lines { get; set; } = [];
+}
+
+/// <summary>短文种子：有序句子列表；音频由句子资产前端拼接，无独立 TTS 文件。</summary>
+public sealed class SeedEssay
+{
+    public string Id { get; set; } = "";
+    public List<string> SentenceIds { get; set; } = [];
 }
 
 public sealed class SeedDialogueLine

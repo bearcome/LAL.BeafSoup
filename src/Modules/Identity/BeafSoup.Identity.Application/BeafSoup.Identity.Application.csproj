@@ -4,5 +4,6 @@
     <ProjectReference Include="../BeafSoup.Identity.Domain/BeafSoup.Identity.Domain.csproj" />
     <ProjectReference Include="../BeafSoup.Identity.Application.Contracts/BeafSoup.Identity.Application.Contracts.csproj" />
     <ProjectReference Include= "../../Learning/BeafSoup.Learning.Application.Contracts/BeafSoup.Learning.Application.Contracts.csproj" />
+    <ProjectReference Include="../../Localization/BeafSoup.Localization.Application.Contracts/BeafSoup.Localization.Application.Contracts.csproj" />
   </ItemGroup>
 </Project>

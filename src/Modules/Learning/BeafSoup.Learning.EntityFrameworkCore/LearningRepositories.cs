@@ -15,6 +15,20 @@ public sealed class FormMasteryRepository : IFormMasteryRepository
         return row is null ? null : LearningPersistenceMapper.ToDomain(row);
     }
 
+    public async Task<IReadOnlyList<FormMastery>> GetByProfileAsync(Guid learnerProfileId, CancellationToken cancellationToken)
+        => (await _context.FormMasteryRecords
+                .AsNoTracking()
+                .Where(m => m.ProfileId == learnerProfileId.ToString())
+                .ToListAsync(cancellationToken))
+            .Select(LearningPersistenceMapper.ToDomain)
+            .ToArray();
+
+    public Task<int> DeleteByProfilesAsync(IReadOnlyCollection<Guid> learnerProfileIds, CancellationToken cancellationToken)
+    {
+        var keys = learnerProfileIds.Select(id => id.ToString()).ToArray();
+        return _context.FormMasteryRecords.Where(m => keys.Contains(m.ProfileId)).ExecuteDeleteAsync(cancellationToken);
+    }
+
     public Task InsertAsync(FormMastery formMastery, CancellationToken cancellationToken)
     {
         _context.FormMasteryRecords.Add(LearningPersistenceMapper.ToRow(formMastery));
@@ -68,6 +82,12 @@ public sealed class LearningActivityRepository : ILearningActivityRepository
         return Task.CompletedTask;
     }
 
+    public Task<int> DeleteByProfilesAsync(IReadOnlyCollection<Guid> learnerProfileIds, CancellationToken cancellationToken)
+    {
+        var keys = learnerProfileIds.Select(id => id.ToString()).ToArray();
+        return _context.LearningActivities.Where(a => keys.Contains(a.ProfileId)).ExecuteDeleteAsync(cancellationToken);
+    }
+
     public Task<int> SaveChangesAsync(CancellationToken cancellationToken)
         => _context.SaveChangesAsync(cancellationToken);
 }
@@ -99,6 +119,12 @@ public sealed class LearnerProgressStateRepository : ILearnerProgressStateReposi
         row.LastHeartChangeAtUtc = updated.LastHeartChangeAtUtc;
         row.LastActivityDateUtc = updated.LastActivityDateUtc;
         row.DayStreak = updated.DayStreak;
+    }
+
+    public Task<int> DeleteByProfilesAsync(IReadOnlyCollection<Guid> learnerProfileIds, CancellationToken cancellationToken)
+    {
+        var keys = learnerProfileIds.Select(id => id.ToString()).ToArray();
+        return _context.LearnerProgressStates.Where(s => keys.Contains(s.ProfileId)).ExecuteDeleteAsync(cancellationToken);
     }
 
     public Task<int> SaveChangesAsync(CancellationToken cancellationToken)

@@ -10,6 +10,7 @@ public static class IdentityPersistenceMapper
             Status = account.Status.ToString(),
             RegisteredAtUtc = account.RegisteredAtUtc,
             IsTest = account.IsTestAccount,
+            EmailVerifiedAtUtc = account.EmailVerifiedAtUtc,
         };
 
     public static UserAccount ToDomain(UserAccountRow row, IEnumerable<UserIdentityLinkRow> links)
@@ -18,7 +19,40 @@ public static class IdentityPersistenceMapper
             Enum.Parse<UserAccountStatus>(row.Status),
             row.RegisteredAtUtc,
             row.IsTest,
-            links.Select(l => new UserIdentityLink(l.Provider, l.ProviderUserId)));
+            links.Select(l => new UserIdentityLink(l.Provider, l.ProviderUserId)),
+            row.EmailVerifiedAtUtc);
+
+    public static AccountTokenRow ToRow(AccountToken token)
+        => new()
+        {
+            Id = token.Id.ToString(),
+            UserId = token.UserId.ToString(),
+            Purpose = token.Purpose.ToString(),
+            TokenHash = token.TokenHash,
+            Salt = token.Salt,
+            CreatedAtUtc = token.CreatedAtUtc,
+            ExpiresAtUtc = token.ExpiresAtUtc,
+            ConsumedAtUtc = token.ConsumedAtUtc,
+            FailedAttempts = token.FailedAttempts,
+        };
+
+    public static AccountToken ToDomain(AccountTokenRow row)
+        => AccountToken.Restore(
+            Guid.Parse(row.Id),
+            Guid.Parse(row.UserId),
+            Enum.Parse<AccountTokenPurpose>(row.Purpose),
+            row.TokenHash,
+            row.Salt,
+            row.CreatedAtUtc,
+            row.ExpiresAtUtc,
+            row.ConsumedAtUtc,
+            row.FailedAttempts);
+
+    public static void Apply(AccountTokenRow row, AccountToken token)
+    {
+        row.ConsumedAtUtc = token.ConsumedAtUtc;
+        row.FailedAttempts = token.FailedAttempts;
+    }
 
     public static UserIdentityLinkRow ToRow(UserIdentityLink link, Guid userId)
         => new() { Provider = link.Provider, ProviderUserId = link.ProviderUserId, UserId = userId.ToString() };

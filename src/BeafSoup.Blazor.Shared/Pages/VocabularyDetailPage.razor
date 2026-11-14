@@ -1,0 +1,185 @@
+@page "/vocabulary/{ConceptId:guid}"
+@attribute [Authorize]
+@using System.Text.Json
+@using BeafSoup.Content
+@inject AppState AppState
+@inject IDictionaryCache Dictionary
+@inject ContentApiClient Content
+@inject IUiTextProvider UiText
+
+@if (_loading)
+{
+    <p><T Key="ui.common.loading" /></p>
+}
+else if (_entry is null)
+{
+    <a class="back-link" href="/vocabulary">← <T Key="ui.nav.vocabulary" /></a>
+    <div class="card"><T Key="ui.vocabulary.not-found" /></div>
+}
+else
+{
+    <a class="back-link" href="/vocabulary">← <T Key="ui.nav.vocabulary" /></a>
+    <section class="page-heading">
+        <p class="page-eyebrow">@_entry.PartOfSpeech · @Cefr()</p>
+        <h1 class="word-detail-word" lang="@TargetLanguage">@DisplayWord()</h1>
+        <p><T Key="ui.trainer.definition" />: <strong>@BaseLemma()</strong></p>
+    </section>
+
+    <div class="word-detail">
+        <div class="library-toolbar">
+            <AudioButton Url="@_audioUrl" AutoPlay="true" />
+        </div>
+
+        @if (_forms is { } forms && (forms.HasRows || forms.Groups.Count > 0))
+        {
+            <div class="card">
+                <h2><T Key="ui.trainer.forms" /></h2>
+                <VocabularyFormsPanel Forms="forms" />
+            </div>
+        }
+
+        <div class="card">
+            <h2><T Key="ui.vocabulary.examples" /></h2>
+            @if (_examplesError)
+            {
+                <div class="notice notice-error" role="alert">
+                    <span><T Key="ui.common.error.unavailable" /></span>
+                    <button class="button-secondary" @onclick="LoadExamplesAsync" disabled="@_examplesLoading">
+                        <T Key="ui.common.retry" />
+                    </button>
+                </div>
+            }
+            else if (_examplesLoading)
+            {
+                <p><T Key="ui.common.loading" /></p>
+            }
+            else if (_examples.Count == 0)
+            {
+                <p><T Key="ui.vocabulary.no-examples" /></p>
+            }
+            else
+            {
+                @foreach (var example in _examples)
+                {
+                    <div class="example-sentence">
+                        <ClickableSentence Text="@example.Text" Language="@TargetLanguage" />
+                        <AudioButton Url="@example.AudioUrl" />
+                    </div>
+                }
+            }
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public Guid ConceptId { get; set; }
+
+    private DictionaryEntry? _entry;
+    private FormsTable? _forms;
+    private string? _audioUrl;
+    private IReadOnlyList<LibrarySentenceDto> _examples = [];
+    private bool _loading = true;
+    private bool _examplesLoading;
+    private bool _examplesError;
+    private Guid _loadedConceptId;
+
+    private string TargetLanguage => AppState.CurrentProfile?.TargetLanguage ?? "de-DE";
+    private string BaseLanguage => AppState.CurrentProfile?.BaseLanguage ?? "zh-CN";
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_loadedConceptId == ConceptId)
+            return;
+        _loadedConceptId = ConceptId;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        try
+        {
+            await Dictionary.EnsureLoadedAsync(CancellationToken.None);
+            _entry = Dictionary.FindById(ConceptId);
+            _forms = _entry is null ? null : BuildForms(_entry);
+            _audioUrl = PrimaryLexeme() is { ValueKind: JsonValueKind.Object } lexeme
+                && lexeme.TryGetProperty("audioUrl", out var audio)
+                ? audio.GetString()
+                : null;
+        }
+        catch (Exception exception) when (exception is HttpRequestException or InvalidDataException or JsonException)
+        {
+            _entry = null;
+        }
+        finally
+        {
+            _loading = false;
+        }
+        if (_entry is not null)
+            await LoadExamplesAsync();
+    }
+
+    private async Task LoadExamplesAsync()
+    {
+        if (_entry is null)
+            return;
+        _examplesLoading = true;
+        _examplesError = false;
+        try
+        {
+            _examples = await Content.GetSentencesAsync(TargetLanguage, _entry.ConceptKey, CancellationToken.None);
+        }
+        catch (HttpRequestException)
+        {
+            _examplesError = true;
+            _examples = [];
+        }
+        finally
+        {
+            _examplesLoading = false;
+        }
+    }
+
+    private JsonElement PrimaryLexeme()
+        => _entry is not null && _entry.ByLanguage.TryGetValue(TargetLanguage, out var language)
+            ? language.GetProperty("lexemes").EnumerateArray()
+                .FirstOrDefault(l => l.GetProperty("isPrimary").GetBoolean())
+            : default;
+
+    private string DisplayWord()
+    {
+        var lexeme = PrimaryLexeme();
+        if (lexeme.ValueKind is not JsonValueKind.Object)
+            return _entry?.ConceptKey ?? "";
+        return lexeme.TryGetProperty("displayWord", out var display)
+            ? display.GetString() ?? _entry!.ConceptKey
+            : lexeme.GetProperty("lemma").GetString() ?? _entry!.ConceptKey;
+    }
+
+    private string BaseLemma()
+    {
+        if (_entry is null || !_entry.ByLanguage.TryGetValue(BaseLanguage, out var language))
+            return "";
+        var primary = language.GetProperty("lexemes").EnumerateArray()
+            .FirstOrDefault(l => l.GetProperty("isPrimary").GetBoolean());
+        return primary.ValueKind is JsonValueKind.Object && primary.TryGetProperty("lemma", out var lemma)
+            ? lemma.GetString() ?? ""
+            : "";
+    }
+
+    private string Cefr()
+    {
+        var lexeme = PrimaryLexeme();
+        return lexeme.ValueKind is JsonValueKind.Object && lexeme.TryGetProperty("cefr", out var cefr)
+            ? cefr.GetString() ?? ""
+            : "";
+    }
+
+    private FormsTable? BuildForms(DictionaryEntry entry)
+    {
+        var lexeme = PrimaryLexeme();
+        return lexeme.ValueKind is JsonValueKind.Object && lexeme.TryGetProperty("forms", out var forms)
+            ? VocabularyFormsTable.Build(forms, entry.PartOfSpeech)
+            : null;
+    }
+}

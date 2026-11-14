@@ -1,0 +1,84 @@
+@page "/essays/{EssayId}"
+@attribute [Authorize]
+@using BeafSoup.Content
+@inject AppState AppState
+@inject ContentApiClient Content
+
+@if (_error)
+{
+    <div class="notice notice-error" role="alert">
+        <span><T Key="ui.common.error.unavailable" /></span>
+        <button class="button-secondary" @onclick="LoadAsync" disabled="@_loading"><T Key="ui.common.retry" /></button>
+    </div>
+}
+else if (_loading)
+{
+    <p><T Key="ui.common.loading" /></p>
+}
+else if (_essay is null)
+{
+    <div class="card"><T Key="ui.common.error.not-found" /></div>
+}
+else
+{
+    <a class="back-link" href="/essays">← <T Key="ui.nav.essays" /></a>
+    <section class="page-heading">
+        <p class="page-eyebrow">@TargetLanguage</p>
+        <h1>@(_essay.Sentences[0].Text)</h1>
+        <p><T Key="ui.essays.subtitle" /></p>
+    </section>
+
+    <div class="library-toolbar">
+        <AudioSequenceButton Urls="SentenceAudioUrls" LabelKey="ui.audio.play-essay" />
+    </div>
+
+    <div class="essay-sentences">
+        @foreach (var sentence in _essay.Sentences)
+        {
+            <div class="essay-sentence">
+                <ClickableSentence Text="@sentence.Text" Language="@TargetLanguage" />
+                <AudioButton Url="@sentence.AudioUrl" />
+            </div>
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public string EssayId { get; set; } = "";
+
+    private EssayDto? _essay;
+    private bool _loading = true;
+    private bool _error;
+
+    private string TargetLanguage => AppState.CurrentProfile?.TargetLanguage ?? "de-DE";
+
+    private IReadOnlyList<string?> SentenceAudioUrls =>
+        _essay?.Sentences.Select(sentence => (string?)sentence.AudioUrl).ToArray() ?? [];
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_essay is not null && string.Equals(_essay.EssayId, EssayId, StringComparison.Ordinal))
+            return;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _error = false;
+        try
+        {
+            var essays = await Content.GetEssaysAsync(TargetLanguage, CancellationToken.None);
+            _essay = essays.FirstOrDefault(e => string.Equals(e.EssayId, EssayId, StringComparison.Ordinal));
+        }
+        catch (HttpRequestException)
+        {
+            _error = true;
+            _essay = null;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+}

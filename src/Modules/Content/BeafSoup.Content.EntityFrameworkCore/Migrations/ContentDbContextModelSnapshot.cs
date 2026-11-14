@@ -217,6 +217,10 @@ namespace BeafSoup.Content.EntityFrameworkCore.Migrations
                     b.Property<int>("Ordinal")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("ConceptKey")
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT");
+
                     b.Property<Guid?>("FormCellId")
                         .HasColumnType("TEXT");
 
@@ -232,6 +236,8 @@ namespace BeafSoup.Content.EntityFrameworkCore.Migrations
                         .HasColumnType("INTEGER");
 
                     b.HasKey("SentenceId", "LanguageCode", "Ordinal");
+
+                    b.HasIndex("ConceptKey");
 
                     b.HasIndex("FormCellId");
 

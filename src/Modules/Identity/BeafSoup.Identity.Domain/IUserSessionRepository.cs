@@ -9,5 +9,9 @@ public interface IUserSessionRepository
     Task<IReadOnlyList<UserSession>> GetAllSessionsAsync(CancellationToken cancellationToken);
     /// <summary>整体更新可变字段（领域对象为脱管重建，变更必须显式写回行）。</summary>
     Task UpdateAsync(UserSession session, CancellationToken cancellationToken);
+
+    /// <summary>删除某账户全部会话记录（账户注销）；返回删除行数。</summary>
+    Task<int> DeleteAllOfUserAsync(Guid userId, CancellationToken cancellationToken);
+
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }

@@ -37,6 +37,14 @@ public abstract class ApiClientBase
         await SendAsync<object>(request, cancellationToken, expectBody: false);
     }
 
+    /// <summary>带请求体的无内容响应（202/204）：注销、申请验证码等。</summary>
+    protected async Task PostNoContentAsync<TRequest>(string uri, TRequest body, CancellationToken cancellationToken)
+    {
+        using var request = await CreateRequestAsync(HttpMethod.Post, uri, cancellationToken);
+        request.Content = JsonContent.Create(body);
+        await SendAsync<object>(request, cancellationToken, expectBody: false);
+    }
+
     /// <summary>带令牌认证的通用发送（PATCH 等非 Get/Post 动词使用）；连通性上报与基类一致。</summary>
     protected Task<HttpResponseMessage> SendWithAuthAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         => SendCoreAsync(request, cancellationToken);

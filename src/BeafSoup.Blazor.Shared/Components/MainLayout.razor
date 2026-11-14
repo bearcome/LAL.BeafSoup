@@ -22,6 +22,9 @@
             <NavLink href="/" Match="NavLinkMatch.All"><T Key="ui.nav.home" /></NavLink>
             <NavLink href="/tree"><T Key="ui.nav.tree" /></NavLink>
             <NavLink href="/trainer"><T Key="ui.nav.trainer" /></NavLink>
+            <NavLink href="/dialogues"><T Key="ui.nav.dialogues" /></NavLink>
+            <NavLink href="/essays"><T Key="ui.nav.essays" /></NavLink>
+            <NavLink href="/vocabulary"><T Key="ui.nav.vocabulary" /></NavLink>
             <AuthorizeView>
                 <Authorized><NavLink href="/settings"><T Key="ui.nav.settings" /></NavLink></Authorized>
             </AuthorizeView>
@@ -42,6 +45,10 @@
         <Authorized><ProgressHeader /></Authorized>
     </AuthorizeView>
     @Body
+    <footer class="app-footer">
+        <a href="/privacy"><T Key="ui.legal.privacy.link" /></a>
+        <a href="/terms"><T Key="ui.legal.terms.link" /></a>
+    </footer>
 </main>
 
 @code {
@@ -61,6 +68,8 @@
             try
             {
                 await AppState.EnsureProfileAsync(userId, CancellationToken.None);
+                // 回访/刷新后恢复在线心跳：否则服务端会话租约到期会强制登出
+                Heartbeat.Start();
             }
             catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
             {

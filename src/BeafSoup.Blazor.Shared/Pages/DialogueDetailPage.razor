@@ -1,0 +1,84 @@
+@page "/dialogues/{DialogueId}"
+@attribute [Authorize]
+@using BeafSoup.Content
+@inject AppState AppState
+@inject ContentApiClient Content
+
+@if (_error)
+{
+    <div class="notice notice-error" role="alert">
+        <span><T Key="ui.common.error.unavailable" /></span>
+        <button class="button-secondary" @onclick="LoadAsync" disabled="@_loading"><T Key="ui.common.retry" /></button>
+    </div>
+}
+else if (_loading)
+{
+    <p><T Key="ui.common.loading" /></p>
+}
+else if (_dialogue is null)
+{
+    <div class="card"><T Key="ui.common.error.not-found" /></div>
+}
+else
+{
+    <a class="back-link" href="/dialogues">← <T Key="ui.nav.dialogues" /></a>
+    <section class="page-heading">
+        <p class="page-eyebrow">@TargetLanguage</p>
+        <h1>@_dialogue.PreviewText</h1>
+        <p><T Key="ui.dialogues.subtitle" /></p>
+    </section>
+
+    <div class="library-toolbar">
+        <AudioSequenceButton Urls="LineAudioUrls" LabelKey="ui.audio.play-dialogue" />
+    </div>
+
+    <div class="dialogue-lines">
+        @foreach (var line in _dialogue.Lines)
+        {
+            <div class="dialogue-line">
+                <div>
+                    <span class="dialogue-speaker">@line.SpeakerLabel:</span>
+                    <ClickableSentence Text="@line.Text" Language="@TargetLanguage" />
+                </div>
+                <AudioButton Url="@line.AudioUrl" />
+            </div>
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public string DialogueId { get; set; } = "";
+
+    private DialogueDto? _dialogue;
+    private bool _loading = true;
+    private bool _error;
+
+    private string TargetLanguage => AppState.CurrentProfile?.TargetLanguage ?? "de-DE";
+
+    private IReadOnlyList<string?> LineAudioUrls =>
+        _dialogue?.Lines.Select(line => (string?)line.AudioUrl).ToArray() ?? [];
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    protected override Task OnParametersSetAsync() => _dialogue is null ? LoadAsync() : Task.CompletedTask;
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _error = false;
+        try
+        {
+            var dialogues = await Content.GetDialoguesAsync(TargetLanguage, CancellationToken.None);
+            _dialogue = dialogues.FirstOrDefault(d => string.Equals(d.DialogueId, DialogueId, StringComparison.Ordinal));
+        }
+        catch (HttpRequestException)
+        {
+            _error = true;
+            _dialogue = null;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+}

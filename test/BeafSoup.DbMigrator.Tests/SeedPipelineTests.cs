@@ -58,17 +58,18 @@ public class SeedPipelineTests : IAsyncLifetime
             MigrationRunner.CreateOptions<VocabularyDbContext>(ConnectionString, "__EFMigrationsHistory_Vocabulary")))
         {
             var concepts = await context.LexicalConcepts.ToListAsync();
-            concepts.Should().HaveCount(4); // 种子：3 个单词概念 + 1 个短语概念
-            concepts.SelectMany(c => c.Lexemes).Should().HaveCount(10); // 含各语言同义/语体变体
-            concepts.Select(VocabularyPersistenceMapper.ToDomain).Should().HaveCount(4); // 还原即校验主词元不变量
+            concepts.Should().HaveCount(300); // 完整 A1 课程：名词/动词/形容词/短语共 300 个概念
+            concepts.SelectMany(c => c.Lexemes).Should().HaveCount(600); // 每概念含德语与中文主词元
+            concepts.Select(VocabularyPersistenceMapper.ToDomain).Should().HaveCount(300); // 还原即校验主词元不变量
             (await context.ParadigmCells.CountAsync()).Should().BeGreaterThan(0);
         }
 
         await using (var context = new ContentDbContext(
             MigrationRunner.CreateOptions<ContentDbContext>(ConnectionString, "__EFMigrationsHistory_Content")))
         {
-            (await context.Sentences.CountAsync()).Should().Be(3);
-            (await context.Dialogues.CountAsync()).Should().Be(3);
+            (await context.Sentences.CountAsync()).Should().Be(600);
+            (await context.Dialogues.CountAsync()).Should().Be(30);
+            (await context.Essays.CountAsync()).Should().Be(15);
             (await context.Courses.CountAsync()).Should().Be(1);
         }
     }

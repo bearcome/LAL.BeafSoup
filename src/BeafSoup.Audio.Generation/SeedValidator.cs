@@ -12,6 +12,7 @@ public sealed record ValidatedSeed(
     IReadOnlyList<LexicalConcept> Concepts,
     IReadOnlyList<Sentence> Sentences,
     IReadOnlyList<Dialogue> Dialogues,
+    IReadOnlyList<Essay> Essays,
     IReadOnlyList<Course> Courses,
     IReadOnlyList<LocalizedText> LocalizedTexts,
     IReadOnlyList<SemanticKey> UiKeys,
@@ -31,18 +32,20 @@ public static class SeedValidator
 
         var voiceRoles = MapVoiceRoles(seed, errors);
         var concepts = MapConcepts(seed, errors, cellIdByRef);
-        var sentences = MapSentences(seed, errors, localized);
+        var sentences = MapSentences(seed, errors, localized, cellIdByRef);
         var dialogues = MapDialogues(seed, errors);
+        var essays = MapEssays(seed, errors);
         var courses = MapCourses(seed, errors, localized);
         var uiKeys = MapUiTexts(seed, errors, localized);
         var exercises = MapExercises(seed, errors, cellIdByRef);
 
         ValidateDialogueReferences(seed, sentences, errors);
+        ValidateEssayReferences(seed, sentences, errors);
         ValidateTokenFormReferences(seed, cellIdByRef, errors);
 
         return errors.Count > 0
             ? new ValidationResult(false, errors, null)
-            : new ValidationResult(true, [], new ValidatedSeed(voiceRoles, concepts, sentences, dialogues, courses, localized, uiKeys, exercises, cellIdByRef));
+            : new ValidationResult(true, [], new ValidatedSeed(voiceRoles, concepts, sentences, dialogues, essays, courses, localized, uiKeys, exercises, cellIdByRef));
     }
 
     private static IReadOnlyList<VoiceRoleConfig> MapVoiceRoles(SeedData seed, List<string> errors)
@@ -117,7 +120,9 @@ public static class SeedValidator
         return result;
     }
 
-    private static IReadOnlyList<Sentence> MapSentences(SeedData seed, List<string> errors, List<LocalizedText> localized)
+    private static IReadOnlyList<Sentence> MapSentences(
+        SeedData seed, List<string> errors, List<LocalizedText> localized,
+        IReadOnlyDictionary<(string ConceptKey, string Surface), Guid> cellIdByRef)
     {
         var result = new List<Sentence>();
         foreach (var seedSentence in seed.Sentences)
@@ -129,7 +134,7 @@ public static class SeedValidator
                 foreach (var loc in seedSentence.Localizations)
                 {
                     localized.Add(LocalizedText.Create(key, LanguageCode.Of(loc.Language), loc.Text));
-                    ApplyTokenization(sentence, loc, errors);
+                    ApplyTokenization(sentence, loc, cellIdByRef);
                 }
                 result.Add(sentence);
             }
@@ -140,23 +145,45 @@ public static class SeedValidator
         }
         return result;
 
-        static void ApplyTokenization(Sentence sentence, SeedSentenceLocalization loc, List<string> errors)
+        static void ApplyTokenization(
+            Sentence sentence, SeedSentenceLocalization loc,
+            IReadOnlyDictionary<(string ConceptKey, string Surface), Guid> cellIdByRef)
         {
             // 空 token 列表 = 该语言尚未分词（如 zh-CN），跳过覆盖校验
             if (loc.Tokens.Count == 0)
                 return;
+            // 词形链接在发布期解析为稳定槽位 ID 与概念键；未命中由后续 ValidateTokenFormReferences 统一报告
+            var tokens = loc.Tokens
+                .Select(t => new SentenceToken(
+                    t.Start, t.Length, Enum.Parse<SentenceTokenKind>(t.Kind),
+                    t.ConceptKey is not null && t.FormSurface is not null
+                        && cellIdByRef.TryGetValue((t.ConceptKey, t.FormSurface), out var cellId)
+                        ? cellId
+                        : null,
+                    t.ConceptKey is null ? null : SemanticKey.Of(t.ConceptKey)))
+                .ToArray();
+            sentence.SetTokenization(LanguageCode.Of(loc.Language), loc.Revision, tokens, loc.Text.Length);
+        }
+    }
+
+    private static IReadOnlyList<Essay> MapEssays(SeedData seed, List<string> errors)
+    {
+        var result = new List<Essay>();
+        foreach (var seedEssay in seed.Essays)
+        {
             try
             {
-                var tokens = loc.Tokens
-                    .Select(t => new SentenceToken(t.Start, t.Length, Enum.Parse<SentenceTokenKind>(t.Kind)))
-                    .ToArray();
-                sentence.SetTokenization(LanguageCode.Of(loc.Language), loc.Revision, tokens, loc.Text.Length);
+                var essay = new Essay(seedEssay.Id);
+                foreach (var sentenceId in seedEssay.SentenceIds)
+                    essay.AppendSentence(sentenceId);
+                result.Add(essay);
             }
             catch (Exception ex) when (ex is DomainException or ArgumentException)
             {
-                errors.Add($"sentences.json[{sentence.Id}/{loc.Language}]：{ex.Message}");
+                errors.Add($"essays.json[{seedEssay.Id}]：{ex.Message}");
             }
         }
+        return result;
     }
 
     private static IReadOnlyList<Dialogue> MapDialogues(SeedData seed, List<string> errors)
@@ -263,10 +290,16 @@ public static class SeedValidator
                         ?? throw new DomainException(ExerciseErrorCodes.InvalidPayload, "correctCell 缺少 conceptKey。");
                     var surface = cellRef["surface"]?.GetValue<string>()
                         ?? throw new DomainException(ExerciseErrorCodes.InvalidPayload, "correctCell 缺少 surface。");
-                    if (!cellIdByRef.TryGetValue((conceptKey, surface), out var cellId))
+                    if (cellIdByRef.TryGetValue((conceptKey, surface), out var cellId))
+                    {
+                        payloadNode["correctCellId"] = cellId.ToString();
+                    }
+                    else if (!IsPhraseConcept(seed, conceptKey))
+                    {
                         throw new DomainException(ExerciseErrorCodes.InvalidPayload,
                             $"习题 {seedExercise.Id} 的 correctCell ({conceptKey}, {surface}) 未命中任何范式槽位。");
-                    payloadNode["correctCellId"] = cellId.ToString();
+                    }
+                    // 短语无范式槽位：保留 conceptKey 供复习关联，不注入槽位 ID
                     payloadNode.AsObject().Remove("correctCell");
                 }
                 var payloadJson = payloadNode.ToJsonString();
@@ -318,9 +351,36 @@ public static class SeedValidator
         }
     }
 
+    private static void ValidateEssayReferences(SeedData seed, IReadOnlyList<Sentence> sentences, List<string> errors)
+    {
+        var known = sentences.Select(s => s.Id).ToHashSet();
+        foreach (var essay in seed.Essays)
+        {
+            foreach (var sentenceId in essay.SentenceIds)
+            {
+                if (!known.Contains(sentenceId))
+                    errors.Add($"essays.json[{essay.Id}]：引用了不存在的句子 {sentenceId}。");
+            }
+            if (essay.SentenceIds.Count == 0)
+                errors.Add($"essays.json[{essay.Id}]：短文至少需要一个句子。");
+            if (essay.SentenceIds.Distinct().Count() != essay.SentenceIds.Count)
+                errors.Add($"essays.json[{essay.Id}]：短文句子不能重复。");
+        }
+    }
+
+    /// <summary>短语概念没有任何形态范式：练习只记录概念键，不注入范式槽位 ID。</summary>
+    private static bool IsPhraseConcept(SeedData seed, string conceptKey)
+    {
+        var concept = seed.Concepts.FirstOrDefault(c => c.Key == conceptKey);
+        return concept is not null
+            && !concept.Lexemes.Values.SelectMany(lexemes => lexemes).Any(lexeme => lexeme.Forms.Count > 0);
+    }
+
     private static void ValidateTokenFormReferences(
         SeedData seed, IReadOnlyDictionary<(string, string), Guid> cellIdByRef, List<string> errors)
     {
+        // 概念集合：短语概念没有形态范式，允许只标注概念键（formSurface 为短语原文）
+        var conceptsByKey = seed.Concepts.ToDictionary(c => c.Key, c => c);
         foreach (var sentence in seed.Sentences)
         {
             foreach (var token in sentence.Localizations.SelectMany(l => l.Tokens))
@@ -332,7 +392,18 @@ public static class SeedValidator
                     errors.Add($"sentences.json[{sentence.Id}]：词形链接必须同时给出 conceptKey 与 formSurface。");
                     continue;
                 }
-                if (!cellIdByRef.ContainsKey((token.ConceptKey, token.FormSurface)))
+                if (!conceptsByKey.TryGetValue(token.ConceptKey, out var concept))
+                {
+                    errors.Add($"sentences.json[{sentence.Id}]：词形链接 {token.ConceptKey} 在 concepts.json 中不存在。");
+                    continue;
+                }
+                if (cellIdByRef.ContainsKey((token.ConceptKey, token.FormSurface)))
+                    continue;
+                // 短语无范式槽位：标注只记录概念键，供词↔句互链使用
+                var hasForms = concept.Lexemes.Values
+                    .SelectMany(lexemes => lexemes)
+                    .Any(lexeme => lexeme.Forms.Count > 0);
+                if (hasForms)
                     errors.Add($"sentences.json[{sentence.Id}]：词形链接 {token.ConceptKey}/{token.FormSurface} 在 concepts.json 中不存在（须命中某个范式槽位）。");
             }
         }

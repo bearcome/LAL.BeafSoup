@@ -4,7 +4,7 @@
 @inject NavigationManager Navigation
 
 @* 音频按钮只显示图标：播放中由呼吸动画表达状态，错误时才显示本地化短提示（无障碍名称随状态变化）。 *@
-<div class="audio-control">
+<div class="audio-control" style="@(ShowControl ? null : "display:none;")">
     <button class="audio-button @(_playing ? "is-playing" : "")" @onclick="PlayFromButtonAsync" disabled="@_playing"
             aria-label="@Label" title="@Label">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
@@ -29,12 +29,21 @@
     [Parameter]
     public bool AutoPlay { get; set; }
 
+    /// <summary>是否渲染可见的播放按钮；关闭后仅保留隐藏的 audio 元素（用于选项读音等自动播放）。</summary>
+    [Parameter]
+    public bool ShowControl { get; set; } = true;
+
+    /// <summary>播放请求序号：值变化时允许同一 URL 再次自动播放（如重复选定同一选项）。</summary>
+    [Parameter]
+    public int PlayRequest { get; set; }
+
     private ElementReference _audio;
     private bool _playing;
     private bool _failed;
     private bool _usingFallback;
     private string? _autoPlayedUrl;
     private string? _lastUrl;
+    private int _lastPlayRequest;
 
     private string Label => UiText.Text(_playing ? "ui.audio.playing" : "ui.audio.play");
 
@@ -57,6 +66,15 @@
             _playing = false;
             _failed = false;
             _usingFallback = false;
+            _autoPlayedUrl = null;
+        }
+        // 同一地址的显式重播请求（如重复选择同一选项）也要能再次自动播放
+        if (_lastPlayRequest != PlayRequest)
+        {
+            _lastPlayRequest = PlayRequest;
+            _autoPlayedUrl = null;
+            _playing = false;
+            _failed = false;
         }
     }
 

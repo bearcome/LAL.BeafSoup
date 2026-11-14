@@ -42,38 +42,51 @@ public sealed class HeartbeatService : IAsyncDisposable
 
     private async Task RunLoopAsync(CancellationToken cancellationToken)
     {
+        // 启动时立即发送一次：页面刷新/回访后马上续租，避免等到第一个周期才恢复在线状态
+        if (!await SendOnceAsync(cancellationToken))
+            return;
+
         using var timer = new PeriodicTimer(_interval);
         try
         {
             while (await timer.WaitForNextTickAsync(cancellationToken))
             {
-                var tokens = _tokens.Tokens;
-                if (tokens is null || _tokens.IsExpired)
-                {
-                    Stop();
-                    SessionExpired?.Invoke();
+                if (!await SendOnceAsync(cancellationToken))
                     return;
-                }
-                try
-                {
-                    await _sessions.RecordHeartbeatAsync(tokens.SessionId, cancellationToken);
-                }
-                catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.Unauthorized)
-                {
-                    // 会话被顶替或已失效：停止心跳并通知登出
-                    Stop();
-                    SessionExpired?.Invoke();
-                    return;
-                }
-                catch (HttpRequestException)
-                {
-                    _connectivity.ReportUnavailable();
-                }
             }
         }
         catch (OperationCanceledException)
         {
             // 正常停止
+        }
+    }
+
+    /// <summary>发送一次心跳；令牌失效或服务端 401 时停止并通知登出。返回是否继续循环。</summary>
+    private async Task<bool> SendOnceAsync(CancellationToken cancellationToken)
+    {
+        var tokens = _tokens.Tokens;
+        if (tokens is null || _tokens.IsExpired)
+        {
+            Stop();
+            SessionExpired?.Invoke();
+            return false;
+        }
+        try
+        {
+            await _sessions.RecordHeartbeatAsync(tokens.SessionId, cancellationToken);
+            return true;
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.Unauthorized)
+        {
+            // 会话被顶替或已失效：停止心跳并通知登出
+            Stop();
+            SessionExpired?.Invoke();
+            return false;
+        }
+        catch (HttpRequestException)
+        {
+            _connectivity.ReportUnavailable();
+            return true;
         }
     }
 

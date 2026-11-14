@@ -10,4 +10,8 @@ public interface ILocalizationReader
 
     /// <summary>取某语言某角色的音色配置（文件名片段 + TTS 语音名）。</summary>
     Task<VoiceRoleConfig?> FindVoiceRoleConfigAsync(LanguageCode language, VoiceRole role, CancellationToken cancellationToken);
+
+    /// <summary>按语义键批量取全部语言版本的文本（内容库按目标语言筛选；不存在返回空集合）。</summary>
+    Task<IReadOnlyList<(SemanticKey Key, LanguageCode Language, string Text, int Revision)>> GetTextsByKeysAsync(
+        IReadOnlyCollection<SemanticKey> keys, CancellationToken cancellationToken);
 }

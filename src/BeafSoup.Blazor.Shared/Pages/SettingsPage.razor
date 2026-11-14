@@ -1,13 +1,60 @@
 @page "/settings"
 @attribute [Authorize]
+@using BeafSoup.Identity
 @inject IUiTextProvider UiText
 @inject IThemeService ThemeService
 @inject AppState AppState
+@inject IdentityApiClient IdentityClient
+@inject IAuthTokenStore Tokens
+@inject AuthStateProvider AuthState
+@inject HeartbeatService Heartbeat
+@inject IJSRuntime JsRuntime
+@inject NavigationManager Navigation
 @implements IDisposable
 
 <h1><T Key="ui.settings.title" /></h1>
 
-<div class="card">
+<section class="card">
+    <h2><T Key="ui.settings.account" /></h2>
+    @if (_account is null)
+    {
+        if (_accountError)
+        {
+            <div class="notice notice-error" role="alert">
+                <span><T Key="ui.common.error.unavailable" /></span>
+                <button class="button-secondary" @onclick="LoadAccountAsync"><T Key="ui.common.retry" /></button>
+            </div>
+        }
+        else
+        {
+            <p><T Key="ui.common.loading" /></p>
+        }
+    }
+    else
+    {
+        <p><T Key="ui.settings.email" />: <strong>@_account.Email</strong></p>
+        <p>
+            @if (_account.EmailVerified)
+            {
+                <span class="status-chip status-chip-success"><T Key="ui.settings.email-verified" /></span>
+            }
+            else
+            {
+                <span class="status-chip"><T Key="ui.settings.email-unverified" /></span>
+                <button class="button-secondary" style="margin-left: var(--spacing-2);"
+                        @onclick="ResendVerificationAsync" disabled="@_resending">
+                    <T Key="ui.auth.verify.resend" />
+                </button>
+            }
+        </p>
+        @if (_resent)
+        {
+            <p role="status"><T Key="ui.auth.verify.sent" /></p>
+        }
+    }
+</section>
+
+<section class="card">
     <label><T Key="ui.settings.theme" /></label>
     <ThemeToggle />
     @if (AppState.CurrentProfile is { } profile)
@@ -16,14 +63,160 @@
             @profile.BaseLanguage → @profile.TargetLanguage · @profile.ThemePreference
         </p>
     }
-</div>
+</section>
+
+<section class="card">
+    <h2><T Key="ui.settings.data" /></h2>
+    <p style="color: var(--color-text-secondary);"><T Key="ui.settings.export-hint" /></p>
+    <button class="button-secondary" @onclick="ExportAsync" disabled="@_exporting">
+        <T Key="ui.settings.export" />
+    </button>
+    @if (_exportError)
+    {
+        <p role="alert" style="color: var(--color-error);"><T Key="ui.common.error.unavailable" /></p>
+    }
+    <p>
+        <a href="/privacy"><T Key="ui.legal.privacy.link" /></a>
+        <span aria-hidden="true">·</span>
+        <a href="/terms"><T Key="ui.legal.terms.link" /></a>
+    </p>
+</section>
+
+<section class="card danger-zone">
+    <h2><T Key="ui.settings.danger-zone" /></h2>
+    <p style="color: var(--color-text-secondary);"><T Key="ui.settings.delete-warning" /></p>
+    <div>
+        <label><T Key="ui.settings.delete-password" /></label>
+        <InputText @bind-Value="_deletePassword" type="password" autocomplete="current-password" />
+    </div>
+    <label style="display:flex; gap: var(--spacing-2); align-items:center;">
+        <input type="checkbox" @bind="_deleteConfirmed" />
+        <T Key="ui.settings.delete-confirm" />
+    </label>
+    <button class="button-danger" @onclick="DeleteAccountAsync"
+            disabled="@(!_deleteConfirmed || string.IsNullOrWhiteSpace(_deletePassword) || _deleting)">
+        <T Key="ui.settings.delete-account" />
+    </button>
+    @if (_deleteError)
+    {
+        <p role="alert" style="color: var(--color-error);"><T Key="ui.settings.delete-error" /></p>
+    }
+</section>
 
 @code {
+    private AccountProfileDto? _account;
+    private bool _accountError;
+    private bool _resending;
+    private bool _resent;
+    private bool _exporting;
+    private bool _exportError;
+    private bool _deleting;
+    private bool _deleteError;
+    private bool _deleteConfirmed;
+    private string _deletePassword = "";
+
     protected override void OnInitialized()
     {
         // 主题选择持久化到 LearnerProfile（服务端权威）；本地存储仅为可丢弃缓存
         ThemeService.Changed += OnThemeChanged;
         _ = SyncPreferenceAsync();
+        _ = LoadAccountAsync();
+    }
+
+    private async Task LoadAccountAsync()
+    {
+        if (Tokens.Tokens is not { } tokens)
+            return;
+        _accountError = false;
+        try
+        {
+            _account = await IdentityClient.GetAccountAsync(tokens.UserId, CancellationToken.None);
+        }
+        catch (HttpRequestException)
+        {
+            // 加载失败显示错误与重试入口，不无限停留在加载态
+            _account = null;
+            _accountError = true;
+        }
+        StateHasChanged();
+    }
+
+    private async Task ResendVerificationAsync()
+    {
+        if (_resending || _account is null)
+            return;
+        _resending = true;
+        _resent = false;
+        try
+        {
+            await IdentityClient.RequestEmailVerificationAsync(new(_account.Email), CancellationToken.None);
+            _resent = true;
+        }
+        catch (HttpRequestException)
+        {
+            // 服务端不可用时保持静默：验证仍可从登录页重试
+        }
+        finally
+        {
+            _resending = false;
+        }
+    }
+
+    private async Task ExportAsync()
+    {
+        if (_exporting || Tokens.Tokens is not { } tokens)
+            return;
+        _exporting = true;
+        _exportError = false;
+        try
+        {
+            var export = await IdentityClient.ExportAsync(tokens.UserId, CancellationToken.None);
+            var json = System.Text.Json.JsonSerializer.Serialize(export, new System.Text.Json.JsonSerializerOptions
+            {
+                WriteIndented = true,
+            });
+            // 浏览器下载：文件名带日期，内容为本地化无关的 JSON 数据
+            await JsRuntime.InvokeVoidAsync("beafSoupFiles.downloadText",
+                $"beafsoup-data-{DateTime.UtcNow:yyyyMMdd}.json", json);
+        }
+        catch (HttpRequestException)
+        {
+            _exportError = true;
+        }
+        finally
+        {
+            _exporting = false;
+        }
+    }
+
+    private async Task DeleteAccountAsync()
+    {
+        if (_deleting || Tokens.Tokens is not { } tokens)
+            return;
+        _deleting = true;
+        _deleteError = false;
+        try
+        {
+            await IdentityClient.DeleteAccountAsync(tokens.UserId, new(_deletePassword), CancellationToken.None);
+            await Tokens.ClearAsync(CancellationToken.None);
+            Heartbeat.Stop();
+            AppState.Reset();
+            AuthState.NotifyLoggedOut();
+            Navigation.NavigateTo("/");
+        }
+        catch (HttpRequestException ex) when (
+            ex.StatusCode is System.Net.HttpStatusCode.BadRequest or System.Net.HttpStatusCode.Unauthorized)
+        {
+            _deleteError = true;
+        }
+        catch (HttpRequestException)
+        {
+            _deleteError = true;
+        }
+        finally
+        {
+            _deleting = false;
+        }
     }
 
     private void OnThemeChanged() => _ = SyncPreferenceAsync();

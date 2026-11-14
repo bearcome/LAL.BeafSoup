@@ -32,6 +32,28 @@ public sealed class UserAccountRepository : IUserAccountRepository
             .Select(l => IdentityPersistenceMapper.ToRow(l, account.Id)));
     }
 
+    public async Task UpdateAsync(UserAccount account, CancellationToken cancellationToken)
+    {
+        var id = account.Id.ToString();
+        var row = await _context.UserAccounts.FindAsync([id], cancellationToken)
+            ?? throw new InvalidOperationException($"账户 {id} 不存在，无法更新。");
+        row.Status = account.Status.ToString();
+        row.EmailVerifiedAtUtc = account.EmailVerifiedAtUtc;
+
+        // 身份关联以聚合当前集合为准增删（注销时集合为空 → 全部删除）
+        var existing = await _context.UserIdentityLinks
+            .Where(l => l.UserId == id)
+            .ToListAsync(cancellationToken);
+        var desired = account.IdentityLinks.Select(l => (l.Provider, l.ProviderUserId)).ToHashSet();
+        _context.UserIdentityLinks.RemoveRange(
+            existing.Where(l => !desired.Contains((l.Provider, l.ProviderUserId))));
+        foreach (var link in account.IdentityLinks.Where(l =>
+                     !existing.Any(e => e.Provider == l.Provider && e.ProviderUserId == l.ProviderUserId)))
+        {
+            _context.UserIdentityLinks.Add(IdentityPersistenceMapper.ToRow(link, account.Id));
+        }
+    }
+
     public async Task<UserRegisteredEvent?> FindRegistrationEventAsync(Guid eventId, CancellationToken cancellationToken)
     {
         var row = await _context.UserRegisteredEvents.FindAsync([eventId.ToString()], cancellationToken);

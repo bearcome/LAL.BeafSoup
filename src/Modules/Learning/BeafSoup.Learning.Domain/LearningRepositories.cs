@@ -7,6 +7,10 @@ public interface ILearningProfileRepository
     Task<IReadOnlyList<LearnerProfile>> FindByUserAsync(Guid userId, CancellationToken cancellationToken);
     Task InsertAsync(LearnerProfile profile, CancellationToken cancellationToken);
     Task UpdateAsync(LearnerProfile profile, CancellationToken cancellationToken);
+
+    /// <summary>删除单个学习配置（账户注销擦除）；返回删除行数。</summary>
+    Task<int> DeleteAsync(Guid learnerProfileId, CancellationToken cancellationToken);
+
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }
 
@@ -16,6 +20,10 @@ public interface IReviewCardRepository
     Task<IReadOnlyList<ReviewCard>> GetDueCardsAsync(Guid learnerProfileId, DateTime nowUtc, int limit, CancellationToken cancellationToken);
     /// <summary>当日已评级（非 New）的卡片数：用于每日新卡预算。</summary>
     Task<int> CountRatedSinceAsync(Guid learnerProfileId, DateTime sinceUtc, CancellationToken cancellationToken);
+    /// <summary>某学习配置下全部复习卡（数据导出）。</summary>
+    Task<IReadOnlyList<ReviewCard>> GetByProfileAsync(Guid learnerProfileId, CancellationToken cancellationToken);
+    /// <summary>删除若干学习配置下的全部复习卡（账户注销擦除）；返回删除行数。</summary>
+    Task<int> DeleteByProfilesAsync(IReadOnlyCollection<Guid> learnerProfileIds, CancellationToken cancellationToken);
     Task InsertAsync(ReviewCard card, CancellationToken cancellationToken);
     Task UpdateAsync(ReviewCard card, CancellationToken cancellationToken);
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
@@ -24,6 +32,10 @@ public interface IReviewCardRepository
 public interface IFormMasteryRepository
 {
     Task<FormMastery?> FindAsync(Guid learnerProfileId, Guid cellId, CancellationToken cancellationToken);
+    /// <summary>某学习配置下全部形态掌握度（数据导出）。</summary>
+    Task<IReadOnlyList<FormMastery>> GetByProfileAsync(Guid learnerProfileId, CancellationToken cancellationToken);
+    /// <summary>删除若干学习配置下的全部形态掌握度（账户注销擦除）；返回删除行数。</summary>
+    Task<int> DeleteByProfilesAsync(IReadOnlyCollection<Guid> learnerProfileIds, CancellationToken cancellationToken);
     Task InsertAsync(FormMastery formMastery, CancellationToken cancellationToken);
     Task UpdateAsync(FormMastery formMastery, CancellationToken cancellationToken);
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
@@ -35,6 +47,8 @@ public interface ILearningActivityRepository
     Task<LearningActivity?> FindByDedupeKeyAsync(Guid learnerProfileId, string dedupeKey, CancellationToken cancellationToken);
     Task<IReadOnlyList<LearningActivity>> GetByProfileAsync(Guid learnerProfileId, CancellationToken cancellationToken);
     Task InsertAsync(LearningActivity activity, CancellationToken cancellationToken);
+    /// <summary>删除若干学习配置下的全部学习事实（账户注销擦除）；返回删除行数。</summary>
+    Task<int> DeleteByProfilesAsync(IReadOnlyCollection<Guid> learnerProfileIds, CancellationToken cancellationToken);
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }
 
@@ -43,5 +57,7 @@ public interface ILearnerProgressStateRepository
     Task<LearnerProgressState?> FindAsync(Guid learnerProfileId, CancellationToken cancellationToken);
     Task InsertAsync(LearnerProgressState state, CancellationToken cancellationToken);
     Task UpdateAsync(LearnerProgressState state, CancellationToken cancellationToken);
+    /// <summary>删除若干学习配置下的游戏化状态（账户注销擦除）；返回删除行数。</summary>
+    Task<int> DeleteByProfilesAsync(IReadOnlyCollection<Guid> learnerProfileIds, CancellationToken cancellationToken);
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }

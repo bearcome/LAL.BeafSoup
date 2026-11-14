@@ -3,5 +3,6 @@
     <ProjectReference Include="../../../BeafSoup.SharedKernel/BeafSoup.SharedKernel.csproj" />
     <ProjectReference Include="../BeafSoup.Content.Domain/BeafSoup.Content.Domain.csproj" />
     <ProjectReference Include="../BeafSoup.Content.Application.Contracts/BeafSoup.Content.Application.Contracts.csproj" />
+    <ProjectReference Include="../../Localization/BeafSoup.Localization.Application.Contracts/BeafSoup.Localization.Application.Contracts.csproj" />
   </ItemGroup>
 </Project>

@@ -45,6 +45,14 @@ public sealed class UserSessionRepository : IUserSessionRepository
         row.EndReason = updated.EndReason;
     }
 
+    public Task<int> DeleteAllOfUserAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var userIdText = userId.ToString();
+        return _context.UserSessions
+            .Where(s => s.UserId == userIdText)
+            .ExecuteDeleteAsync(cancellationToken);
+    }
+
     public Task<int> SaveChangesAsync(CancellationToken cancellationToken)
         => _context.SaveChangesAsync(cancellationToken);
 }

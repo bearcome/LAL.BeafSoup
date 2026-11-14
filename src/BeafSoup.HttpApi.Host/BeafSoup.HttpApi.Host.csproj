@@ -18,8 +18,8 @@
     <ProjectReference Include="../Modules/UsageAnalytics/BeafSoup.UsageAnalytics.Application.Contracts/BeafSoup.UsageAnalytics.Application.Contracts.csproj" />
     <ProjectReference Include="../Modules/UsageAnalytics/BeafSoup.UsageAnalytics.Application/BeafSoup.UsageAnalytics.Application.csproj" />
     <ProjectReference Include="../Modules/UsageAnalytics/BeafSoup.UsageAnalytics.HttpApi/BeafSoup.UsageAnalytics.HttpApi.csproj" />
-    <ProjectReference Include="../Modules/Content/BeafSoup.Content.Domain/BeafSoup.Content.Domain.csproj" />
-    <ProjectReference Include="../Modules/Content/BeafSoup.Content.Application.Contracts/BeafSoup.Content.Application.Contracts.csproj" />
+    <ProjectReference Include="../Modules/Audio/BeafSoup.Audio.Domain/BeafSoup.Audio.Domain.csproj" />
+    <ProjectReference Include="../Modules/Content/BeafSoup.Content.Domain/BeafSoup.Content.Domain.csproj" />    <ProjectReference Include="../Modules/Content/BeafSoup.Content.Application.Contracts/BeafSoup.Content.Application.Contracts.csproj" />
     <ProjectReference Include="../Modules/Content/BeafSoup.Content.Application/BeafSoup.Content.Application.csproj" />
     <ProjectReference Include="../Modules/Content/BeafSoup.Content.EntityFrameworkCore/BeafSoup.Content.EntityFrameworkCore.csproj" />
     <ProjectReference Include="../Modules/Content/BeafSoup.Content.HttpApi/BeafSoup.Content.HttpApi.csproj" />

@@ -39,6 +39,42 @@ public sealed class DictionaryCacheTests
         handler.Calls.Should().Be(2);
     }
 
+    [Fact]
+    public async Task FindPrimaryAudioUrl_按词元或形态命中并返回主词元音频()
+    {
+        var handler = new SequenceHandler(new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent("""
+                {
+                  "concept.coffee": {
+                    "conceptId": "b09e8e3b-4776-10de-703b-7ecf794cec46",
+                    "pos": "Noun",
+                    "kind": "Word",
+                    "de-DE": {
+                      "lexemes": [{
+                        "lemma": "Kaffee",
+                        "displayWord": "der Kaffee",
+                        "isPrimary": true,
+                        "forms": { "declension": ["Kaffee", "Kaffees"] },
+                        "audioUrl": "de-DE/der-Kaffee-Mia.mp3"
+                      }]
+                    }
+                  }
+                }
+                """, Encoding.UTF8, "application/json"),
+        });
+        var cache = new DictionaryCache(new HttpClient(handler)
+        {
+            BaseAddress = new Uri("https://localhost:5280/"),
+        });
+        await cache.EnsureLoadedAsync(CancellationToken.None);
+
+        // 原型与变格形态都能解析到同一主词元音频
+        cache.FindPrimaryAudioUrl("Kaffee", "de-DE").Should().Be("de-DE/der-Kaffee-Mia.mp3");
+        cache.FindPrimaryAudioUrl("Kaffees", "de-DE").Should().Be("de-DE/der-Kaffee-Mia.mp3");
+        cache.FindPrimaryAudioUrl("Wasser", "de-DE").Should().BeNull();
+    }
+
     private sealed class SequenceHandler(params HttpResponseMessage[] responses) : HttpMessageHandler
     {
         private readonly Queue<HttpResponseMessage> _responses = new(responses);

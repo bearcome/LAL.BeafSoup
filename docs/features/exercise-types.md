@@ -17,6 +17,13 @@
 | 场景对话听力选择题 | `DialogueListeningMcq` | 播放完整对话音频，回答理解性选择题，支持自动连续播放和留间隔跟读模式播放 |
 | 补全对话（对话族内特殊题型，规则见下） | `DialogueCloze` | 对话行中带空；版本化题目负载通过 `responseMode` 指定选择或输入；音频播放**补全后**的行 |
 
+## 音频交互补充（本轮迭代）
+
+- **多行对话连续播放**：`DialogueListeningMcq` 与 `DialogueCloze` 在题目加载或学习者点击“播放整段对话”时，按对话行顺序逐行播放各自的完整句音频；每行使用自己的 `VoiceRole`，形成多角色对话效果，绝不朗读说话人标签。每行仍提供独立播放按钮。
+- **目标语言选项读音**：选择题中显示为目标语言的选项（如 `SentenceClozeMcq` 的德语选项、`DialogueCloze` 的德语选项）在选中时立即播放该选项对应词元的音频；选项音频解析失败或浏览器拒绝播放不阻断判分。
+- 补全对话的补全版音频可直接引用该行**完整句音频**（`{sentenceId}-{assetFileToken}.mp3`）；若负载声明 `-revealed-` 资产而文件缺失，客户端回退到同句子的完整句音频。
+
+
 题型注册表共六种：`WordDefinitionMcq`、`SentenceClozeMcq`、`SentenceClozeInput`、`SentenceTranslationOrder`、`DialogueListeningMcq`、`DialogueCloze`。补全对话的选择/输入模式由题目负载指定。`MockExam` 是 Exam 模块的计时整卷编排（A1–C1），组合已注册题型，不是题型注册键；另有独立背单词模块。
 
 ## 对话填空——音频规则（需求 8，规范性）

@@ -2,10 +2,10 @@
 @inherits GradedExerciseBase
 @inject IUiTextProvider UiText
 
-@* 场景对话听力选择题：播放完整对话（逐行连续播放），回答理解题；题目加载后自动播放首行音频，重播有上限且不惩罚。 *@
+@* 场景对话听力选择题：按行顺序连续播放完整对话（每行各自音色）；重播有上限且不惩罚。 *@
 <div class="card">
     <div class="listening-audio">
-        <AudioButton @ref="_audio" Url="@CurrentLineAudio" AutoPlay="true" />
+        <AudioSequenceButton @ref="_audio" Urls="LineAudioUrls" AutoPlay="true" LabelKey="ui.audio.play-dialogue" />
         <button class="button-secondary listening-replay" @onclick="ReplayAsync"
                 disabled="@(_replayCount >= MaxReplay || _replaying)">
             @UiText.Text("ui.audio.replay") <span class="replay-count">@_replayCount/@MaxReplay</span>
@@ -26,7 +26,7 @@
 </div>
 
 @code {
-    private AudioButton? _audio;
+    private AudioSequenceButton? _audio;
     private int _replayCount;
     private bool _replaying;
     private string? _selected;
@@ -34,11 +34,14 @@
     private IEnumerable<JsonElement> Lines => Payload.GetProperty("lines").EnumerateArray();
     private JsonElement[] Options => Payload.GetProperty("options").EnumerateArray().ToArray();
     private int MaxReplay => Payload.TryGetProperty("maxReplayCount", out var max) ? max.GetInt32() : 3;
-    private string? CurrentLineAudio => Lines.FirstOrDefault().ValueKind is JsonValueKind.Object
-        ? Lines.First().GetProperty("revealedAudioUrl").GetString()
-        : null;
 
-    /// <summary>重播按钮真正触发音频播放，只有真正开始播放才计数；达到上限后按钮禁用。</summary>
+    /// <summary>整段对话音频：按行顺序取各行完整句音频。</summary>
+    private IReadOnlyList<string?> LineAudioUrls => Lines
+        .Select(line => line.TryGetProperty("revealedAudioUrl", out var audio) ? audio.GetString() : null)
+        .Where(url => !string.IsNullOrWhiteSpace(url))
+        .ToArray();
+
+    /// <summary>重播按钮真正触发整段播放，只有排入播放才计数；达到上限后按钮禁用。</summary>
     private async Task ReplayAsync()
     {
         if (_audio is null || _replayCount >= MaxReplay || _replaying)
@@ -46,7 +49,7 @@
         _replaying = true;
         try
         {
-            if (await _audio.TryPlayAsync())
+            if (await _audio.TryPlayFromStartAsync())
                 _replayCount++;
         }
         finally

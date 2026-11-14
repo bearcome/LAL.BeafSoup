@@ -76,7 +76,27 @@ public sealed class ApiTestFixture : WebApplicationFactory<Program>, IAsyncLifet
             .UseSqlite(ConnectionString, sqlite => sqlite.MigrationsHistoryTable(historyTable))
             .Options;
 
-    public async Task<AuthTokensDto> RegisterAsync(HttpClient client, string email, Guid? registrationEventId = null, bool isTest = false)
+    /// <summary>
+    /// 注册并（默认）完成邮箱验证：启用验证要求时经开发发件箱取码验证，返回可用的会话令牌。
+    /// verify=false 时返回未验证账户的原始注册结果，供生命周期测试使用。
+    /// </summary>
+    public async Task<AuthTokensDto> RegisterAsync(
+        HttpClient client, string email, Guid? registrationEventId = null, bool isTest = false, bool verify = true)
+    {
+        var result = await RegisterRawAsync(client, email, registrationEventId, isTest);
+        if (result.Tokens is not null)
+            return result.Tokens;
+        if (!verify)
+            throw new InvalidOperationException("注册需要邮箱验证，但调用方要求不验证。");
+        var code = await GetLatestCodeAsync(client, email, "EmailVerification");
+        var verifyResponse = await client.PostAsJsonAsync("/api/identity/email/verify", new { email, code });
+        verifyResponse.EnsureSuccessStatusCode();
+        return (await verifyResponse.Content.ReadFromJsonAsync<AuthTokensDto>())!;
+    }
+
+    /// <summary>原始注册结果（可能为待验证）：用于验证要求开关与注册幂等测试。</summary>
+    public async Task<RegistrationResultDto> RegisterRawAsync(
+        HttpClient client, string email, Guid? registrationEventId = null, bool isTest = false)
     {
         var response = await client.PostAsJsonAsync("/api/identity/register", new
         {
@@ -88,8 +108,25 @@ public sealed class ApiTestFixture : WebApplicationFactory<Program>, IAsyncLifet
             isTestAccount = isTest,
         });
         response.EnsureSuccessStatusCode();
-        return (await response.Content.ReadFromJsonAsync<AuthTokensDto>())!;
+        return (await response.Content.ReadFromJsonAsync<RegistrationResultDto>())!;
     }
+
+    /// <summary>从开发发件箱读取该邮箱最近一封指定用途邮件的 6 位验证码（仅 Testing 环境可用）。</summary>
+    public async Task<string> GetLatestCodeAsync(HttpClient client, string email, string kind)
+    {
+        var messages = await client.GetFromJsonAsync<List<OutboxEmailDto>>("/api/dev/email-outbox") ?? [];
+        var message = messages
+            .LastOrDefault(m => string.Equals(m.To, email.Trim().ToLowerInvariant(), StringComparison.OrdinalIgnoreCase)
+                && m.Kind == kind)
+            ?? throw new InvalidOperationException($"发件箱中没有 {email} 的 {kind} 邮件。");
+        var match = System.Text.RegularExpressions.Regex.Match(message.Body, @"\b\d{6}\b");
+        return match.Success
+            ? match.Value
+            : throw new InvalidOperationException($"邮件正文中没有 6 位验证码：{message.Body}");
+    }
+
+    /// <summary>开发发件箱条目（仅测试断言使用）。</summary>
+    public sealed record OutboxEmailDto(string To, string Subject, string Body, string Kind, DateTime CreatedAtUtc);
 
     public static void Authenticate(HttpClient client, AuthTokensDto tokens)
         => client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", tokens.AccessToken);

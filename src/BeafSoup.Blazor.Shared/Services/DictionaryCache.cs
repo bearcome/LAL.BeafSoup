@@ -20,6 +20,9 @@ public interface IDictionaryCache
     IReadOnlyList<DictionaryEntry> FindBySurface(string surface, string language);
 
     DictionaryEntry? FindById(Guid conceptId);
+
+    /// <summary>按表层形式（词元或任一形态）取主词元音频；未命中或未配置音色时返回 null。</summary>
+    string? FindPrimaryAudioUrl(string surface, string language);
 }
 
 /// <summary>概念词典 K-V 缓存：发布期导出的只读静态 JSON（dictionary.json），整载内存、按键命中；不回写。</summary>
@@ -125,4 +128,16 @@ public sealed class DictionaryCache : IDictionaryCache
 
     public DictionaryEntry? FindById(Guid conceptId)
         => _entries.FirstOrDefault(e => e.ConceptId == conceptId);
+
+    public string? FindPrimaryAudioUrl(string surface, string language)
+    {
+        var entry = FindBySurface(surface, language).FirstOrDefault();
+        if (entry is null || !entry.ByLanguage.TryGetValue(language, out var languageEntry))
+            return null;
+        var primary = languageEntry.GetProperty("lexemes").EnumerateArray()
+            .FirstOrDefault(l => l.GetProperty("isPrimary").GetBoolean());
+        return primary.ValueKind is JsonValueKind.Object && primary.TryGetProperty("audioUrl", out var audio)
+            ? audio.GetString()
+            : null;
+    }
 }
